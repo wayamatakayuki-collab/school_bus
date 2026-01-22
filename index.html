@@ -443,7 +443,16 @@ const APP = {
 };
 
 const $ = (sel)=>document.querySelector(sel);
-const esc = (s)=>String(s ?? "").replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&_toggle="&quot;","'":"&#39;" }[m]));
+function esc(s){
+  return String(s ?? "").replace(/[&<>"']/g, (m)=>({
+    "&":"&amp;",
+    "<":"&lt;",
+    ">":"&gt;",
+    '"':"&quot;",
+    "'":"&#39;"
+  }[m]));
+}
+
 function nowTs(){ return Date.now(); }
 function dateKey(d=new Date()){
   const y=d.getFullYear();
