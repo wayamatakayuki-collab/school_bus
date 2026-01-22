@@ -971,6 +971,13 @@ const UI = {
   }
 };
 
+const Actions = {
+  async quickToggle(studentId){
+    const st = getDailyState(State.date, studentId);
+    const nextStatus = (st.status === "ride") ? "none" : "ride";
+    return await Actions.setStatus(studentId, nextStatus, st.note || "");
+  },
+
   async setStatus(studentId, statusKey, note){
     const s = State.roster.find(x=>String(x.id)===String(studentId));
     if(!s) return;
@@ -992,7 +999,6 @@ const UI = {
       showToast("クラウド更新に失敗（権限/通信/ルール確認）");
     }
   },
-
 
   async setClassDone(done){
     const cls = $("#class-filter").value;
@@ -1027,6 +1033,7 @@ const UI = {
     renderCheck();
   }
 };
+
 
 /* -------------------------
    Rendering
