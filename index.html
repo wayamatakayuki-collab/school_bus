@@ -1894,14 +1894,14 @@ function startHeartbeat(){
   }, 5000);
 }
 
-(async function init(){
-  State.dailyDoc = (DB.daily?.[State.date]) || ensureDaily(State.date);
-  State.backend = createLocalBackend();
-  await applyBackend();
-  bind();
-  renderAll();
+/* 起動（末尾に置く） */
+window.addEventListener("DOMContentLoaded", async ()=>{
+  bind();                 // 先にイベントを付ける（タブが反応しやすくなる）
+  await applyBackend();   // ここで local/cloud を判定して購読開始＋renderAllまで実施される
   startHeartbeat();
-})();
+  UI.switchTab("check");  // 初期タブを確実に
+});
+
 </script>
 </body>
 </html>
