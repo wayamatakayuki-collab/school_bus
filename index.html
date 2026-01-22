@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html> 
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
@@ -16,17 +16,67 @@
     ::-webkit-scrollbar-thumb{ background:#cbd5e1; border-radius:10px; }
     ::-webkit-scrollbar-thumb:hover{ background:#94a3b8; }
 
+    /* =========================
+       PRINT（要望反映）
+       - 備考欄なし
+       - 氏名/バス停が収まるよう幅＋折返し最適化
+       - バス別：3便を1枚にまとめて出力（3カラム）
+    ========================= */
     @media print{
       .no-print{ display:none !important; }
-      body{ background:white !important; }
-      .print-shell{ max-width:100% !important; padding:0 !important; margin:0 !important; }
-      .print-page{ page-break-after:always; }
+      body{ background:white !important; margin:0; padding:0; }
+      .print-shell{ max-width:100% !important; width:100% !important; padding:0 !important; margin:0 !important; }
+
+      @page{ size:A4 portrait; margin:10mm; }
+
+      .print-page{ display:block; width:100%; page-break-after:always; }
       .print-page:last-child{ page-break-after:auto; }
+
       .print-card{ border:2px solid #000 !important; box-shadow:none !important; }
       .print-title{ border-bottom:4px solid #000 !important; padding-bottom:6px !important; }
-      table{ width:100% !important; border-collapse:collapse !important; font-size:10pt !important; }
-      th,td{ border:1px solid #000 !important; padding:6px 8px !important; }
+
+      table{ width:100% !important; border-collapse:collapse !important; table-layout:fixed !important; }
+      th,td{ border:1px solid #000 !important; padding:6px 8px !important; vertical-align:top; }
+      th{ background:#f3f4f6 !important; font-size:9pt !important; }
+      td{ font-size:9.5pt !important; }
+
       .print-mini{ font-size:9pt !important; }
+      .td-name{ font-weight:900 !important; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+      .td-stop{ white-space:normal; overflow-wrap:anywhere; word-break:break-word; }
+
+      /* バス別：3便を1枚に（3カラム） */
+      .print-bus-grid{
+        display:grid !important;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap:6mm;
+      }
+      .print-bus-card{
+        border:2px solid #000 !important;
+        padding:3mm !important;
+        page-break-inside:avoid;
+      }
+      .print-bus-title{
+        font-size:12pt !important;
+        font-weight:900 !important;
+        margin-bottom:2mm !important;
+      }
+
+      /* 学級別：崩れ防止 */
+      .print-class-card{
+        border:2px solid #000 !important;
+        padding:3mm !important;
+        margin-bottom:5mm !important;
+        page-break-inside:avoid;
+      }
+      .print-class-title{
+        font-size:12pt !important;
+        font-weight:900 !important;
+        margin-bottom:2mm !important;
+      }
+
+      /* 人数が多い時に詰める保険 */
+      .compact td{ font-size:9pt !important; padding:5px 6px !important; }
+      .compact th{ font-size:8.5pt !important; padding:5px 6px !important; }
     }
 
     .tap{ transition:transform .08s ease, box-shadow .08s ease; }
@@ -58,9 +108,10 @@
     .modal-backdrop{ background:rgba(15,23,42,.55); }
   </style>
 
-  <!-- Firebase (任意：設定しないならローカル動作のみ) -->
-  <script defer src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
-  <script defer src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+  <!-- Firebase（クラウド同期用）※クラウド利用時は Auth ユーザーを作成（例：bus@otakisho.local / otakisho） -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
 </head>
 
 <body class="bg-slate-50 text-slate-800 min-h-screen">
@@ -196,7 +247,6 @@
 
       <div id="monitor-fit-root" class="no-print bg-white border border-slate-200 rounded-3xl p-2 shadow-sm overflow-hidden">
         <div id="monitor-fit" class="origin-top-left">
-          <!-- ★ここを「折り返しなし横並び」へ（2段にならない） -->
           <div id="monitor-grid" class="flex flex-row flex-nowrap gap-2"></div>
         </div>
       </div>
@@ -211,13 +261,13 @@
       <div class="no-print bg-white border border-slate-200 rounded-3xl p-5 shadow-sm flex flex-wrap items-center gap-3">
         <div class="mr-auto">
           <div class="text-lg font-black text-slate-800">印刷プレビュー（下校）</div>
-          <div class="text-xs font-bold text-slate-500">チェック欄・備考欄つき。</div>
+          <div class="text-xs font-bold text-slate-500">備考欄なし / 氏名・バス停が収まる幅に最適化。バス別は3便を1枚にまとめて出力します。</div>
         </div>
 
         <div class="flex items-center gap-2">
           <span class="text-[11px] font-black text-slate-400 tracking-widest uppercase">形式</span>
           <select id="print-mode" class="bg-slate-100 border border-slate-200 px-4 py-2 rounded-2xl font-black outline-none">
-            <option value="bus">バス別（現場向け）</option>
+            <option value="bus">バス別（3便を1枚）</option>
             <option value="class">学級別（担任控え）</option>
           </select>
         </div>
@@ -275,6 +325,7 @@
             <div class="mr-auto">
               <div class="text-[11px] font-black text-slate-400 tracking-widest uppercase">Firebase 設定（JSON）</div>
               <div class="text-xs font-bold text-slate-500 mt-1">Firebase ConsoleのWeb設定オブジェクトを貼り付け。</div>
+              <div class="text-[11px] font-bold text-slate-500 mt-2">※ 共通パスワード運用：Authに <span class="font-black">bus@otakisho.local</span> / <span class="font-black">otakisho</span> を作成しておくとスムーズです。</div>
             </div>
             <button id="btn-test-cloud" class="tap px-4 py-2 rounded-2xl bg-slate-900 text-white text-xs font-black hover:bg-black">接続テスト</button>
           </div>
@@ -422,7 +473,10 @@
 
 <script>
 /* =========================
-   Bus Checker (下校のみ) v12.2
+   Bus Checker (下校のみ) v12.3
+   - 印刷：備考欄なし、幅最適化、バス別は3便を1枚にまとめる
+   - クラウド：Firebase Auth（共通PW otakisho）＋ onSnapshot差分同期（ポーリングなし）
+   - 5秒ごとUIハートビート（再描画/フィットのみ：read/write増やさない）
    - モニタ：折り返しなし横一列（学級カードを2段にしない）
    - 乗車ハイライト：バス色に統一（担任/モニタ）
    - CSV：UTF-8/UTF-8(BOM)/Shift-JIS 自動判定（Excel文字化け対策）
@@ -430,8 +484,8 @@
 ========================= */
 
 const APP = {
-  version: "v12.2",
-  storageKey: "busCheckerV122",
+  version: "v12.3",
+  storageKey: "busCheckerV123",
   busTypes: ["上瀑バス","総元バス","田代バス"],
   statuses: [
     { key:"none",   label:"未チェック", chip:"chip-none",   short:"未" },
@@ -440,6 +494,11 @@ const APP = {
     { key:"pickup", label:"送迎",       chip:"chip-pickup", short:"送" },
     { key:"other",  label:"その他",     chip:"chip-other",  short:"他" }
   ]
+};
+
+const CLOUD_AUTH = {
+  email: "bus@otakisho.local",
+  password: "otakisho"
 };
 
 const $ = (sel)=>document.querySelector(sel);
@@ -530,7 +589,12 @@ function normalizeStatus(k){
 ------------------------- */
 function defaultDB(){
   return {
-    config:{ displayName:"", mode:"local", schoolId:"otaki-es", firebaseJSON:"" },
+    config:{
+      displayName:"",
+      mode:"local",
+      schoolId:"otaki-es",
+      firebaseJSON:""
+    },
     roster:[
       { id: 1, class:"1-1", num:1, name:"佐藤 太郎", bus:"上瀑バス", stop:"上瀑駅前" },
       { id: 2, class:"1-1", num:2, name:"鈴木 花子", bus:"総元バス", stop:"総元小学校" },
@@ -542,14 +606,15 @@ function defaultDB(){
 function loadDB(){
   try{
     const raw = localStorage.getItem(APP.storageKey);
+    const base = defaultDB();
     if(raw){
       const obj=JSON.parse(raw);
-      obj.config ||= defaultDB().config;
+      obj.config = { ...base.config, ...(obj.config||{}) };
       obj.roster ||= [];
       obj.daily ||= {};
       return obj;
     }
-    return defaultDB();
+    return base;
   }catch(e){
     console.warn(e);
     return defaultDB();
@@ -590,7 +655,7 @@ function getDailyState(dateK, studentId){
   if(st){
     return { ...st, status: normalizeStatus(st.status) };
   }
-  return { status:"none", note:"", ts:0, by:"" }; // 初期＝未チェック
+  return { status:"none", note:"", ts:0, by:"" };
 }
 function setDailyStateLocal(dateK, studentId, patch){
   const daily = ensureDaily(dateK);
@@ -652,7 +717,7 @@ function createLocalBackend(){
 }
 
 function createCloudBackend(firebaseConfig, schoolId){
-  let app=null, fs=null;
+  let app=null, fs=null, auth=null;
   let unsubRoster=null, unsubDaily=null;
 
   function pathBase(){
@@ -660,12 +725,22 @@ function createCloudBackend(firebaseConfig, schoolId){
   }
   const rosterDocId="roster";
 
+  async function ensureAuthSignedIn(){
+    if(!auth) auth = window.firebase.auth();
+    if(auth.currentUser) return true;
+    // 共有アカウント（共通PW）
+    await auth.signInWithEmailAndPassword(CLOUD_AUTH.email, CLOUD_AUTH.password);
+    return true;
+  }
+
   return {
     type:"cloud",
     init: async()=>{
       if(!window.firebase || !window.firebase.initializeApp) throw new Error("Firebase SDKが読み込めません");
       app = window.firebase.apps?.length ? window.firebase.app() : window.firebase.initializeApp(firebaseConfig);
       fs = window.firebase.firestore();
+      if(!window.firebase.auth) throw new Error("Auth SDKが読み込めません（firebase-auth-compat.js）");
+      await ensureAuthSignedIn();
       return true;
     },
     subscribeRoster:(cb)=>{
@@ -678,6 +753,7 @@ function createCloudBackend(firebaseConfig, schoolId){
       return ()=>{ if(unsubRoster) unsubRoster(); unsubRoster=null; };
     },
     saveRoster: async(roster)=>{
+      await ensureAuthSignedIn();
       await pathBase().doc(rosterDocId).set({ roster, updatedAt: window.firebase.firestore.FieldValue.serverTimestamp() }, {merge:true});
       return true;
     },
@@ -701,6 +777,7 @@ function createCloudBackend(firebaseConfig, schoolId){
       return ()=>{ if(unsubDaily) unsubDaily(); unsubDaily=null; };
     },
     updateStudent: async(dateK, studentId, patch)=>{
+      await ensureAuthSignedIn();
       const docId=`daily_${dateK}`;
       const ref=pathBase().doc(docId);
 
@@ -716,6 +793,7 @@ function createCloudBackend(firebaseConfig, schoolId){
       return {prev,next};
     },
     updateClassDone: async(dateK, className, done)=>{
+      await ensureAuthSignedIn();
       const docId=`daily_${dateK}`;
       const ref=pathBase().doc(docId);
       const updateObj={};
@@ -944,7 +1022,6 @@ function renderCheck(){
     let topBtnClass = "bg-white/80 border-slate-200 text-slate-700 hover:bg-white";
     let noteChip = "text-amber-700 bg-amber-50 border-amber-100";
 
-    // ★乗車＝バス色（カード全体）
     if(st.status==="ride"){
       const t=rideThemeForBus(s.bus);
       cardClass=t.card;
@@ -1035,8 +1112,6 @@ function renderMonitor(){
   const grid = $("#monitor-grid");
   grid.innerHTML="";
 
-  // ★折り返しなし横一列（2段にしない）
-  // 各学級カードは狭めに固定（余計な枠を小さく）
   const cardW = 210;
 
   classes.forEach(cls=>{
@@ -1074,14 +1149,12 @@ function renderMonitor(){
           const st = getDailyState(State.date, s.id);
           const info = APP.statuses.find(x=>x.key===st.status) || APP.statuses[0];
 
-          // ★乗車はバス色（淡色）でハイライト
           let rowBg = "bg-white border-slate-100";
           if(st.status==="ride") rowBg = rideRowThemeForBus(s.bus);
           else if(st.status==="pickup") rowBg="bg-emerald-50 border-emerald-100";
           else if(st.status==="absent") rowBg="bg-slate-100 border-slate-200";
           else if(st.status==="other") rowBg="bg-amber-50 border-amber-100";
 
-          // 「乗」は表示しない（乗車は背景で判別）
           const showStatusMini = (st.status!=="none" && st.status!=="ride");
           const statusMini = showStatusMini ? `<span class="px-1.5 py-0.5 rounded-lg text-[10px] font-black ${info.chip}">${info.short}</span>` : "";
 
@@ -1131,98 +1204,117 @@ function renderPrint(){
   `;
   container.appendChild(header);
 
+  // バス別：3便を1枚にまとめる（3カラム）
   if(mode==="bus"){
+    const page=document.createElement("div");
+    page.className="print-page print-card rounded-3xl border border-slate-200 shadow-sm p-4 mb-6";
+
+    const grid=document.createElement("div");
+    grid.className="print-bus-grid";
+
     APP.busTypes.forEach(busName=>{
       const rows = roster
         .filter(s=>getDailyState(State.date, s.id).status==="ride" && s.bus===busName)
         .sort((a,b)=> a.class.localeCompare(b.class, undefined, {numeric:true}) || (a.num-b.num));
 
-      const counts={};
-      rows.forEach(s=>counts[s.class]=(counts[s.class]||0)+1);
-      const breakdown = Object.entries(counts).sort((a,b)=>a[0].localeCompare(b[0], undefined, {numeric:true})).map(([c,n])=>`${c}:${n}名`).join("、 ");
+      const card=document.createElement("div");
+      card.className="print-bus-card";
 
-      const page=document.createElement("div");
-      page.className="print-page print-card rounded-3xl border border-slate-200 shadow-sm p-4 mb-6";
-      page.innerHTML = `
-        <div class="flex flex-wrap items-center justify-between gap-3 mb-2">
-          <div class="text-xl font-black">■ ${busName}（合計：${rows.length}名）</div>
-          <div class="print-mini font-bold text-slate-600">【学級別内訳】 ${breakdown || "なし"}</div>
-        </div>
-
-        <table>
+      const compactClass = rows.length > 18 ? "compact" : "";
+      card.innerHTML = `
+        <div class="print-bus-title">■ ${busName}（${rows.length}名）</div>
+        <table class="${compactClass}">
+          <colgroup>
+            <col style="width:16%;">  <!-- クラス -->
+            <col style="width:12%;">  <!-- 番号 -->
+            <col style="width:40%;">  <!-- 氏名 -->
+            <col style="width:24%;">  <!-- バス停 -->
+            <col style="width:8%;">   <!-- 確認 -->
+          </colgroup>
           <thead>
-            <tr class="bg-slate-100">
-              <th style="width:70px">クラス</th>
-              <th style="width:60px">番号</th>
+            <tr>
+              <th>クラス</th>
+              <th>番号</th>
               <th>氏名</th>
               <th>バス停</th>
-              <th style="width:70px">確認</th>
-              <th style="width:180px">備考</th>
+              <th>□</th>
             </tr>
           </thead>
           <tbody>
-            ${rows.length ? rows.map(s=>`
-              <tr>
-                <td class="text-center font-black">${s.class}</td>
-                <td class="text-center font-black">${s.num}</td>
-                <td class="font-black">${s.name}</td>
-                <td class="print-mini">${s.stop}</td>
-                <td class="text-center">□</td>
-                <td class="print-mini">${(getDailyState(State.date, s.id).note || "")}</td>
-              </tr>
-            `).join("") : `
-              <tr><td colspan="6" class="p-6 text-center font-black text-slate-400">乗車予定なし</td></tr>
-            `}
+            ${
+              rows.length
+              ? rows.map(s=>`
+                <tr>
+                  <td style="text-align:center; font-weight:900;">${s.class}</td>
+                  <td style="text-align:center; font-weight:800;">${s.num}</td>
+                  <td class="td-name">${esc(s.name)}</td>
+                  <td class="td-stop">${esc(s.stop)}</td>
+                  <td style="text-align:center;">□</td>
+                </tr>
+              `).join("")
+              : `<tr><td colspan="5" style="text-align:center; padding:6mm; font-weight:900; color:#64748b;">乗車予定なし</td></tr>`
+            }
           </tbody>
         </table>
       `;
-      container.appendChild(page);
+      grid.appendChild(card);
     });
-  }else{
-    classes.forEach(cls=>{
-      const kids = roster.filter(s=>s.class===cls).sort((a,b)=>a.num-b.num);
-      const page=document.createElement("div");
-      page.className="print-page print-card rounded-3xl border border-slate-200 shadow-sm p-4 mb-6";
-      page.innerHTML = `
-        <div class="flex items-center justify-between mb-2">
-          <div class="text-xl font-black">■ ${cls}（${kids.length}名）</div>
-          <div class="print-mini font-bold text-slate-600">チェック欄：現場記録用</div>
-        </div>
 
-        <table>
-          <thead>
-            <tr class="bg-slate-100">
-              <th style="width:60px">番号</th>
-              <th>氏名</th>
-              <th style="width:110px">状態</th>
-              <th style="width:90px">バス</th>
-              <th>バス停</th>
-              <th style="width:70px">確認</th>
-              <th style="width:180px">備考</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${kids.map(s=>{
+    page.appendChild(grid);
+    container.appendChild(page);
+    return;
+  }
+
+  // 学級別：備考なし／幅最適化
+  classes.forEach(cls=>{
+    const kids = roster.filter(s=>s.class===cls).sort((a,b)=>a.num-b.num);
+    const page=document.createElement("div");
+    page.className="print-page print-class-card rounded-3xl border border-slate-200 shadow-sm p-4 mb-6";
+
+    const compactClass = kids.length > 26 ? "compact" : "";
+    page.innerHTML = `
+      <div class="print-class-title">■ ${cls}（${kids.length}名）</div>
+      <table class="${compactClass}">
+        <colgroup>
+          <col style="width:10%;">  <!-- 番号 -->
+          <col style="width:30%;">  <!-- 氏名 -->
+          <col style="width:14%;">  <!-- 状態 -->
+          <col style="width:12%;">  <!-- バス -->
+          <col style="width:26%;">  <!-- バス停 -->
+          <col style="width:8%;">   <!-- 確認 -->
+        </colgroup>
+        <thead>
+          <tr>
+            <th>番号</th>
+            <th>氏名</th>
+            <th>状態</th>
+            <th>バス</th>
+            <th>バス停</th>
+            <th>□</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${
+            kids.map(s=>{
               const st=getDailyState(State.date, s.id);
               const info=APP.statuses.find(x=>x.key===st.status) || APP.statuses[0];
               return `
                 <tr>
-                  <td class="text-center font-black">${s.num}</td>
-                  <td class="font-black">${s.name}</td>
-                  <td class="text-center font-black">${info.label}</td>
-                  <td class="text-center font-black">${busShort(s.bus)}</td>
-                  <td class="print-mini">${s.stop}</td>
-                  <td class="text-center">□</td>
-                  <td class="print-mini">${st.note || ""}</td>
+                  <td style="text-align:center; font-weight:900;">${s.num}</td>
+                  <td class="td-name">${esc(s.name)}</td>
+                  <td style="text-align:center; font-weight:900;">${esc(info.label)}</td>
+                  <td style="text-align:center; font-weight:900;">${esc(busShort(s.bus))}</td>
+                  <td class="td-stop">${esc(s.stop)}</td>
+                  <td style="text-align:center;">□</td>
                 </tr>
               `;
-            }).join("")}
-          </tbody>
-        </table>
-      `;
-      container.appendChild(page);
-    });
-  }
+            }).join("")
+          }
+        </tbody>
+      </table>
+    `;
+    container.appendChild(page);
+  });
 }
 
 /* ---- Monitor fit ---- */
@@ -1276,7 +1368,6 @@ function exportCSV(){
         }).join(",");
       })
   );
-  // ★BOM付与：Excelで日本語が崩れにくい
   const csv = "\ufeff" + lines.join("\n");
   downloadBlob(csv, `bus_roster_${dateKey()}.csv`, "text/csv;charset=utf-8");
 }
@@ -1314,17 +1405,14 @@ async function readCsvTextSmart(file){
     }
   };
 
-  // まずUTF-8
   let text = tryDecode("utf-8") ?? "";
   if(hasUtf8Bom) text = text.replace(/^\uFEFF/, "");
 
-  // 文字化け（置換文字）が混ざる場合はShift-JISを試す
   if(text.includes("�")){
     const sjis = tryDecode("shift-jis");
     if(sjis && !sjis.includes("�")) text = sjis;
   }
 
-  // それでもBOM混入があれば除去
   text = text.replace(/^\uFEFF/, "");
   return text;
 }
@@ -1414,7 +1502,7 @@ function renderSettings(){
   const isCloud = DB.config.mode==="cloud";
   $("#cfg-mode-local").className = isCloud ? "px-4 py-3 text-sm font-black bg-white text-slate-700" : "px-4 py-3 text-sm font-black bg-slate-900 text-white";
   $("#cfg-mode-cloud").className = isCloud ? "px-4 py-3 text-sm font-black bg-slate-900 text-white" : "px-4 py-3 text-sm font-black bg-white text-slate-700";
-  $("#cfg-mode-hint").textContent = isCloud ? "クラウド同期：職員室モニタと担任端末で同じデータを共有" : "ローカル：この端末内だけで完結";
+  $("#cfg-mode-hint").textContent = isCloud ? "クラウド同期：職員室モニタと担任端末で同じデータを共有（差分同期/ポーリングなし）" : "ローカル：この端末内だけで完結";
 
   $("#cfg-mode-local").onclick = ()=>{ DB.config.mode="local"; saveDB(); showToast("ローカルに切替"); applyBackend(); renderSettings(); };
   $("#cfg-mode-cloud").onclick = ()=>{ DB.config.mode="cloud"; saveDB(); showToast("クラウド同期に切替（設定が必要）"); applyBackend(); renderSettings(); };
@@ -1427,9 +1515,9 @@ function renderSettings(){
       <tr class="hover:bg-slate-50">
         <td class="p-3 font-black text-blue-700">${s.class}</td>
         <td class="p-3 font-black text-slate-500">${s.num}</td>
-        <td class="p-3 font-black">${s.name}</td>
-        <td class="p-3"><span class="px-2 py-1 rounded-xl text-[11px] font-black ${busClass(s.bus)}">${s.bus}</span></td>
-        <td class="p-3 text-xs font-bold text-slate-500">${s.stop}</td>
+        <td class="p-3 font-black">${esc(s.name)}</td>
+        <td class="p-3"><span class="px-2 py-1 rounded-xl text-[11px] font-black ${busClass(s.bus)}">${esc(s.bus)}</span></td>
+        <td class="p-3 text-xs font-bold text-slate-500">${esc(s.stop)}</td>
         <td class="p-3 text-center whitespace-nowrap">
           <button class="tap px-3 py-2 rounded-2xl bg-blue-50 border border-blue-100 text-blue-700 text-xs font-black hover:bg-blue-100" onclick="Settings.startEdit('${s.id}')">編集</button>
           <button class="tap px-3 py-2 rounded-2xl bg-rose-50 border border-rose-100 text-rose-700 text-xs font-black hover:bg-rose-100" onclick="Settings.deleteStudent('${s.id}')">削除</button>
@@ -1483,7 +1571,7 @@ async function applyBackend(){
       State.backend=createLocalBackend();
       DB.config.mode="local"; saveDB();
       State.cloudReady=false;
-      showToast("クラウド接続失敗：ローカルで動作します");
+      showToast("クラウド接続失敗：ローカルで動作します（Auth/設定を確認）");
     }
   }else{
     State.backend=createLocalBackend();
@@ -1603,7 +1691,7 @@ function bind(){
       $("#cfg-cloud-status").className="px-3 py-2 rounded-2xl border text-xs font-black bg-emerald-50 border-emerald-100 text-emerald-700";
       showToast("接続テストOK");
     }catch(e){
-      $("#cfg-cloud-status").textContent="接続NG（JSON/ネットワーク確認）";
+      $("#cfg-cloud-status").textContent="接続NG（JSON/ネットワーク/Auth確認）";
       $("#cfg-cloud-status").className="px-3 py-2 rounded-2xl border text-xs font-black bg-rose-50 border-rose-100 text-rose-700";
       showToast("接続テスト失敗");
       console.warn(e);
@@ -1665,12 +1753,24 @@ function bind(){
   });
 }
 
+/* 5秒ごとUIハートビート（差分同期はonSnapshotなのでread/writeは増やさない） */
+function startHeartbeat(){
+  setInterval(()=>{
+    // 表示の安定化（特に大型モニタでの縮小フィット）
+    if(State.tab==="monitor"){
+      layoutMonitor();
+      fitMonitor();
+    }
+  }, 5000);
+}
+
 (async function init(){
   State.dailyDoc = (DB.daily?.[State.date]) || ensureDaily(State.date);
   State.backend = createLocalBackend();
   await applyBackend();
   bind();
   renderAll();
+  startHeartbeat();
 })();
 </script>
 </body>
