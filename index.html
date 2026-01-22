@@ -22,6 +22,7 @@
        - 学級別：従来どおり（バス停あり）
        - バス別：バス停列を削除 / 氏名7文字想定・長い場合は自動縮小（renderPrint側）
        - ★上瀑バスのみ2列表示（renderPrint側）
+       - ★バス別：A4 1枚に3バス（renderPrint側 + print CSSでコンパクト化）
     ========================= */
     @media print{
       .no-print{ display:none !important; }
@@ -91,6 +92,42 @@
       }
       .print-bus-card table tbody tr{
         height:4.05mm;
+      }
+
+      /* ★バス別（A4 1枚に3バス）：さらに詰める */
+      .print-page.bus-sheet{ padding:2.0mm !important; }
+      .bus-sheet .print-title{
+        padding-bottom:1.6mm !important;
+        margin-bottom:1.6mm !important;
+        border-bottom:3px solid #000 !important;
+      }
+      .bus-sheet .print-title .print-title-en{ font-size:11pt !important; }
+      .bus-sheet .print-title .print-title-ja{ font-size:9.2pt !important; }
+
+      .print-bus-sheet{
+        display:grid !important;
+        grid-template-rows:repeat(3, auto) !important;
+        gap:2.2mm !important;
+      }
+      .print-bus-sheet .print-bus-card{
+        padding:1.6mm !important;
+      }
+      .print-bus-sheet .print-bus-title{
+        font-size:9.2pt !important;
+        margin:0 0 1.2mm 0 !important;
+      }
+      .print-bus-sheet .print-bus-card table th{
+        font-size:6.0pt !important;
+        padding:0.8mm 0.8mm !important;
+        line-height:1.02 !important;
+      }
+      .print-bus-sheet .print-bus-card table td{
+        font-size:6.4pt !important;
+        padding:0.8mm 0.8mm !important;
+        line-height:1.02 !important;
+      }
+      .print-bus-sheet .print-bus-card table tbody tr{
+        height:3.45mm;
       }
 
       /* 学級別（担任控え）は現状維持 */
@@ -1256,134 +1293,93 @@ function renderPrint(){
     </div>
   `;
 
-  // バス別（縦向き）：バス停列削除 / 上瀑は2列表示
+  // バス別：A4 1枚に3バス（バス停列削除 / 2列レイアウトで高さ圧縮）
   if(mode==="bus"){
+    const page=document.createElement("div");
+    page.className="print-page print-card bus-sheet rounded-3xl border border-slate-200 shadow-sm p-3";
+    page.innerHTML = makeHeaderHTML();
+
+    const sheet=document.createElement("div");
+    sheet.className="print-bus-sheet";
+
     APP.busTypes.forEach(busName=>{
       const rows = roster
         .filter(s=>getDailyState(State.date, s.id).status==="ride" && s.bus===busName)
         .sort((a,b)=> a.class.localeCompare(b.class, undefined, {numeric:true}) || (a.num-b.num));
 
-      const page=document.createElement("div");
-      page.className="print-page print-card rounded-3xl border border-slate-200 shadow-sm p-3";
-      page.innerHTML = makeHeaderHTML();
-
       const card=document.createElement("div");
       card.className="print-bus-card";
 
-      const isKamidaki = String(busName).includes("上瀑");
+      const half = Math.ceil(rows.length/2);
+      const left = rows.slice(0, half);
+      const right = rows.slice(half);
+      const maxN = Math.max(left.length, right.length);
 
-      if(isKamidaki){
-        const half = Math.ceil(rows.length/2);
-        const left = rows.slice(0, half);
-        const right = rows.slice(half);
-        const maxN = Math.max(left.length, right.length);
+      card.innerHTML = `
+        <div class="print-bus-title">■ ${busName}（${rows.length}名）</div>
+        <table>
+          <colgroup>
+            <col style="width:18%;">  <!-- クラス -->
+            <col style="width:8%;">   <!-- 番号 -->
+            <col style="width:21%;">  <!-- 氏名 -->
+            <col style="width:3%;">   <!-- □ -->
+            <col style="width:18%;">  <!-- クラス -->
+            <col style="width:8%;">   <!-- 番号 -->
+            <col style="width:21%;">  <!-- 氏名 -->
+            <col style="width:3%;">   <!-- □ -->
+          </colgroup>
+          <thead>
+            <tr>
+              <th>クラス</th><th>番号</th><th>氏名</th><th>□</th>
+              <th>クラス</th><th>番号</th><th>氏名</th><th>□</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${
+              maxN
+              ? Array.from({length:maxN}).map((_,i)=>{
+                  const a = left[i] || null;
+                  const b = right[i] || null;
 
-        card.innerHTML = `
-          <div class="print-bus-title">■ ${busName}（${rows.length}名）</div>
-          <table>
-            <colgroup>
-              <col style="width:18%;">  <!-- クラス -->
-              <col style="width:8%;">   <!-- 番号 -->
-              <col style="width:21%;">  <!-- 氏名 -->
-              <col style="width:3%;">   <!-- □ -->
-              <col style="width:18%;">  <!-- クラス -->
-              <col style="width:8%;">   <!-- 番号 -->
-              <col style="width:21%;">  <!-- 氏名 -->
-              <col style="width:3%;">   <!-- □ -->
-            </colgroup>
-            <thead>
-              <tr>
-                <th>クラス</th><th>番号</th><th>氏名</th><th>□</th>
-                <th>クラス</th><th>番号</th><th>氏名</th><th>□</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${
-                maxN
-                ? Array.from({length:maxN}).map((_,i)=>{
-                    const a = left[i] || null;
-                    const b = right[i] || null;
+                  const aCls = a ? formatClassLabel(a.class) : "";
+                  const bCls = b ? formatClassLabel(b.class) : "";
 
-                    const aCls = a ? formatClassLabel(a.class) : "";
-                    const bCls = b ? formatClassLabel(b.class) : "";
+                  const aClsPt = a ? fitFontPt(aCls, 7.4, 6, 6.0) : null;
+                  const bClsPt = b ? fitFontPt(bCls, 7.4, 6, 6.0) : null;
 
-                    const aClsPt = a ? fitFontPt(aCls, 7.4, 6, 6.2) : null;
-                    const bClsPt = b ? fitFontPt(bCls, 7.4, 6, 6.2) : null;
+                  const aNamePt = a ? fitFontPt(a.name, 7.4, 7, 5.8) : null;
+                  const bNamePt = b ? fitFontPt(b.name, 7.4, 7, 5.8) : null;
 
-                    const aNamePt = a ? fitFontPt(a.name, 7.4, 7, 6.0) : null;
-                    const bNamePt = b ? fitFontPt(b.name, 7.4, 7, 6.0) : null;
+                  const aClsStyle = aClsPt ? `font-size:${aClsPt}pt !important;` : "";
+                  const bClsStyle = bClsPt ? `font-size:${bClsPt}pt !important;` : "";
+                  const aNameStyle = aNamePt ? `font-size:${aNamePt}pt !important;` : "";
+                  const bNameStyle = bNamePt ? `font-size:${bNamePt}pt !important;` : "";
 
-                    const aClsStyle = aClsPt ? `font-size:${aClsPt}pt !important;` : "";
-                    const bClsStyle = bClsPt ? `font-size:${bClsPt}pt !important;` : "";
-                    const aNameStyle = aNamePt ? `font-size:${aNamePt}pt !important;` : "";
-                    const bNameStyle = bNamePt ? `font-size:${bNamePt}pt !important;` : "";
+                  return `
+                    <tr>
+                      <td class="td-class" style="${aClsStyle}">${a ? esc(aCls) : ""}</td>
+                      <td style="text-align:center; font-weight:800; white-space:nowrap;">${a ? a.num : ""}</td>
+                      <td class="td-name" style="${aNameStyle}">${a ? esc(a.name) : ""}</td>
+                      <td style="text-align:center;">${a ? "□" : ""}</td>
 
-                    return `
-                      <tr>
-                        <td class="td-class" style="${aClsStyle}">${a ? esc(aCls) : ""}</td>
-                        <td style="text-align:center; font-weight:800; white-space:nowrap;">${a ? a.num : ""}</td>
-                        <td class="td-name" style="${aNameStyle}">${a ? esc(a.name) : ""}</td>
-                        <td style="text-align:center;">${a ? "□" : ""}</td>
+                      <td class="td-class" style="${bClsStyle}">${b ? esc(bCls) : ""}</td>
+                      <td style="text-align:center; font-weight:800; white-space:nowrap;">${b ? b.num : ""}</td>
+                      <td class="td-name" style="${bNameStyle}">${b ? esc(b.name) : ""}</td>
+                      <td style="text-align:center;">${b ? "□" : ""}</td>
+                    </tr>
+                  `;
+                }).join("")
+              : `<tr><td colspan="8" style="text-align:center; padding:3mm; font-weight:900; color:#64748b;">乗車予定なし</td></tr>`
+            }
+          </tbody>
+        </table>
+      `;
 
-                        <td class="td-class" style="${bClsStyle}">${b ? esc(bCls) : ""}</td>
-                        <td style="text-align:center; font-weight:800; white-space:nowrap;">${b ? b.num : ""}</td>
-                        <td class="td-name" style="${bNameStyle}">${b ? esc(b.name) : ""}</td>
-                        <td style="text-align:center;">${b ? "□" : ""}</td>
-                      </tr>
-                    `;
-                  }).join("")
-                : `<tr><td colspan="8" style="text-align:center; padding:6mm; font-weight:900; color:#64748b;">乗車予定なし</td></tr>`
-              }
-            </tbody>
-          </table>
-        `;
-      }else{
-        card.innerHTML = `
-          <div class="print-bus-title">■ ${busName}（${rows.length}名）</div>
-          <table>
-            <colgroup>
-              <col style="width:24%;">  <!-- クラス -->
-              <col style="width:12%;">  <!-- 番号 -->
-              <col style="width:54%;">  <!-- 氏名 -->
-              <col style="width:10%;">  <!-- □ -->
-            </colgroup>
-            <thead>
-              <tr>
-                <th>クラス</th>
-                <th>番号</th>
-                <th>氏名</th>
-                <th>□</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${
-                rows.length
-                ? rows.map(s=>{
-                    const clsLabel = formatClassLabel(s.class);
-                    const clsPt = fitFontPt(clsLabel, 7.4, 6, 6.2);
-                    const namePt = fitFontPt(s.name,   7.4, 7, 6.0);
-                    const clsStyle = clsPt ? `font-size:${clsPt}pt !important;` : "";
-                    const nameStyle = namePt ? `font-size:${namePt}pt !important;` : "";
-                    return `
-                      <tr>
-                        <td class="td-class" style="${clsStyle}">${esc(clsLabel)}</td>
-                        <td style="text-align:center; font-weight:800; white-space:nowrap;">${s.num}</td>
-                        <td class="td-name" style="${nameStyle}">${esc(s.name)}</td>
-                        <td style="text-align:center;">□</td>
-                      </tr>
-                    `;
-                  }).join("")
-                : `<tr><td colspan="4" style="text-align:center; padding:6mm; font-weight:900; color:#64748b;">乗車予定なし</td></tr>`
-              }
-            </tbody>
-          </table>
-        `;
-      }
-
-      page.appendChild(card);
-      container.appendChild(page);
+      sheet.appendChild(card);
     });
 
+    page.appendChild(sheet);
+    container.appendChild(page);
     return;
   }
 
