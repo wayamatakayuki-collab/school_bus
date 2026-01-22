@@ -971,13 +971,6 @@ const UI = {
   }
 };
 
-const Actions = {
-  async quickToggle(studentId){
-    const st = getDailyState(State.date, studentId);
-    const nextStatus = (st.status === "ride") ? "none" : "ride";
-    return await Actions.setStatus(studentId, nextStatus, st.note || "");
-  },
-
   async setStatus(studentId, statusKey, note){
     const s = State.roster.find(x=>String(x.id)===String(studentId));
     if(!s) return;
@@ -987,13 +980,19 @@ const Actions = {
       return;
     }
 
-    await State.backend.updateStudent(State.date, studentId, { status: normalizeStatus(statusKey), note: note || "" });
-    await State.backend.updateClassDone(State.date, s.class, false);
+    try{
+      await State.backend.updateStudent(State.date, studentId, { status: normalizeStatus(statusKey), note: note || "" });
+      await State.backend.updateClassDone(State.date, s.class, false);
 
-    const label = APP.statuses.find(x=>x.key===normalizeStatus(statusKey))?.label || statusKey;
-    showToast(`${s.class} ${s.num} ${s.name}：${label}`);
-    return true;
+      const label = APP.statuses.find(x=>x.key===normalizeStatus(statusKey))?.label || statusKey;
+      showToast(`${s.class} ${s.num} ${s.name}：${label}`);
+      return true;
+    }catch(e){
+      console.warn(e);
+      showToast("クラウド更新に失敗（権限/通信/ルール確認）");
+    }
   },
+
 
   async setClassDone(done){
     const cls = $("#class-filter").value;
