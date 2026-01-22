@@ -23,61 +23,90 @@
        - バス別：3便を1枚にまとめて出力（3カラム）
     ========================= */
     @media print{
-      .no-print{ display:none !important; }
-      body{ background:white !important; margin:0; padding:0; }
-      .print-shell{ max-width:100% !important; width:100% !important; padding:0 !important; margin:0 !important; }
+  .no-print{ display:none !important; }
+  body{ background:white !important; margin:0; padding:0; }
+  .print-shell{ max-width:100% !important; width:100% !important; padding:0 !important; margin:0 !important; }
 
-      @page{ size:A4 portrait; margin:10mm; }
+  /* ★A4横向きに固定（バス別の要望） */
+  @page{ size:A4 landscape; margin:7mm; }
 
-      .print-page{ display:block; width:100%; page-break-after:always; }
-      .print-page:last-child{ page-break-after:auto; }
+  .print-page{ display:block; width:100%; page-break-after:always; }
+  .print-page:last-child{ page-break-after:auto; }
 
-      .print-card{ border:2px solid #000 !important; box-shadow:none !important; }
-      .print-title{ border-bottom:4px solid #000 !important; padding-bottom:6px !important; }
+  .print-card{ border:2px solid #000 !important; box-shadow:none !important; }
+  .print-title{ border-bottom:3px solid #000 !important; padding-bottom:3mm !important; margin-bottom:4mm !important; }
 
-      table{ width:100% !important; border-collapse:collapse !important; table-layout:fixed !important; }
-      th,td{ border:1px solid #000 !important; padding:6px 8px !important; vertical-align:top; }
-      th{ background:#f3f4f6 !important; font-size:9pt !important; }
-      td{ font-size:9.5pt !important; }
+  /* 共通テーブル */
+  table{ width:100% !important; border-collapse:collapse !important; table-layout:fixed !important; }
+  th,td{ border:1px solid #000 !important; vertical-align:middle; }
 
-      .print-mini{ font-size:9pt !important; }
-      .td-name{ font-weight:900 !important; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-      .td-stop{ white-space:normal; overflow-wrap:anywhere; word-break:break-word; }
+  /* （学級別は従来どおり “折返しOK”） */
+  .td-name{ font-weight:900 !important; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .td-stop{ white-space:normal; overflow-wrap:anywhere; word-break:break-word; }
 
-      /* バス別：3便を1枚に（3カラム） */
-      .print-bus-grid{
-        display:grid !important;
-        grid-template-columns: 1fr 1fr 1fr;
-        gap:6mm;
-      }
-      .print-bus-card{
-        border:2px solid #000 !important;
-        padding:3mm !important;
-        page-break-inside:avoid;
-      }
-      .print-bus-title{
-        font-size:12pt !important;
-        font-weight:900 !important;
-        margin-bottom:2mm !important;
-      }
+  /* =========================
+     ★バス別：3便を1枚に（3カラム）＋44名想定の超コンパクト
+     - 行の高さを固定し、文字は基本1行（長い場合は…）
+  ========================= */
+  .print-bus-grid{
+    display:grid !important;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap:4.5mm;
+    align-items:start;
+  }
+  .print-bus-card{
+    border:2px solid #000 !important;
+    padding:2.5mm !important;
+    page-break-inside:avoid;
+  }
+  .print-bus-title{
+    font-size:11pt !important;
+    font-weight:900 !important;
+    margin:0 0 2mm 0 !important;
+  }
 
-      /* 学級別：崩れ防止 */
-      .print-class-card{
-        border:2px solid #000 !important;
-        padding:3mm !important;
-        margin-bottom:5mm !important;
-        page-break-inside:avoid;
-      }
-      .print-class-title{
-        font-size:12pt !important;
-        font-weight:900 !important;
-        margin-bottom:2mm !important;
-      }
+  /* バス別だけ：折返し禁止（縦が増えると44行入らない） */
+  .print-bus-card .td-name,
+  .print-bus-card .td-stop{
+    white-space:nowrap !important;
+    overflow:hidden !important;
+    text-overflow:ellipsis !important;
+  }
 
-      /* 人数が多い時に詰める保険 */
-      .compact td{ font-size:9pt !important; padding:5px 6px !important; }
-      .compact th{ font-size:8.5pt !important; padding:5px 6px !important; }
-    }
+  /* バス別テーブル：44行入れるための詰め */
+  .print-bus-card table th{
+    background:#f3f4f6 !important;
+    font-size:7.0pt !important;
+    padding:1.1mm 1.1mm !important;
+    line-height:1.05 !important;
+  }
+  .print-bus-card table td{
+    font-size:7.4pt !important;
+    padding:1.05mm 1.1mm !important;
+    line-height:1.05 !important;
+  }
+  .print-bus-card table tbody tr{
+    height:4.05mm; /* ★44行 + ヘッダ が収まる想定 */
+  }
+
+  /* 学級別（担任控え）は現状維持（必要なら後で別調整） */
+  .print-class-card{
+    border:2px solid #000 !important;
+    padding:3mm !important;
+    margin-bottom:5mm !important;
+    page-break-inside:avoid;
+  }
+  .print-class-title{
+    font-size:12pt !important;
+    font-weight:900 !important;
+    margin-bottom:2mm !important;
+  }
+
+  /* 人数が多い時に詰める保険（学級別用） */
+  .compact td{ font-size:9pt !important; padding:5px 6px !important; }
+  .compact th{ font-size:8.5pt !important; padding:5px 6px !important; }
+}
+
 
     .tap{ transition:transform .08s ease, box-shadow .08s ease; }
     .tap:active{ transform:scale(.98); }
