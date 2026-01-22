@@ -5,27 +5,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>スクールバス乗車確認（下校のみ）</title>
 
-  <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
 
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Noto+Sans+JP:wght@400;700;900&display=swap');
     body { font-family: 'Inter','Noto Sans JP',system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif; -webkit-tap-highlight-color: transparent; }
 
-    /* Nice scrollbars (通常運用時) */
     ::-webkit-scrollbar{ width:8px; height:8px; }
     ::-webkit-scrollbar-track{ background:#eef2ff; }
     ::-webkit-scrollbar-thumb{ background:#cbd5e1; border-radius:10px; }
     ::-webkit-scrollbar-thumb:hover{ background:#94a3b8; }
 
-    /* Print */
     @media print{
       .no-print{ display:none !important; }
       body{ background:white !important; }
       .print-shell{ max-width:100% !important; padding:0 !important; margin:0 !important; }
       .print-page{ page-break-after:always; }
       .print-page:last-child{ page-break-after:auto; }
-
       .print-card{ border:2px solid #000 !important; box-shadow:none !important; }
       .print-title{ border-bottom:4px solid #000 !important; padding-bottom:6px !important; }
       table{ width:100% !important; border-collapse:collapse !important; font-size:10pt !important; }
@@ -33,11 +29,9 @@
       .print-mini{ font-size:9pt !important; }
     }
 
-    /* Motion */
     .tap{ transition:transform .08s ease, box-shadow .08s ease; }
     .tap:active{ transform:scale(.98); }
 
-    /* Tabs */
     .tab-active{
       background:#eff6ff;
       border-bottom:3px solid #2563eb;
@@ -47,22 +41,20 @@
 
     /* Status chips */
     .chip{ display:inline-flex; align-items:center; gap:.35rem; padding:.18rem .5rem; border-radius:.65rem; font-weight:900; font-size:11px; border:1px solid transparent; white-space:nowrap; }
-    .chip-ride{ background:#dcfce7; color:#14532d; border-color:#bbf7d0; }
-    .chip-off{ background:#fee2e2; color:#7f1d1d; border-color:#fecaca; }
-    .chip-absent{ background:#f1f5f9; color:#475569; border-color:#e2e8f0; }
-    .chip-pickup{ background:#dbeafe; color:#1e3a8a; border-color:#bfdbfe; }
-    .chip-other{ background:#fef3c7; color:#78350f; border-color:#fde68a; }
+    .chip-none{ background:#f8fafc; color:#64748b; border-color:#e2e8f0; }     /* 未チェック（デフォルト） */
+    .chip-ride{ background:#dbeafe; color:#1e40af; border-color:#bfdbfe; }     /* 乗車 */
+    .chip-absent{ background:#f1f5f9; color:#475569; border-color:#e2e8f0; }   /* 欠席 */
+    .chip-pickup{ background:#dcfce7; color:#14532d; border-color:#bbf7d0; }   /* 送迎 */
+    .chip-other{ background:#fef3c7; color:#78350f; border-color:#fde68a; }    /* その他 */
 
     /* Bus badges */
     .bus-u{ background-color:#dbeafe; color:#1e40af; border:1px solid #bfdbfe; } /* 上瀑 */
     .bus-s{ background-color:#fef3c7; color:#92400e; border:1px solid #fde68a; } /* 総元 */
     .bus-t{ background-color:#dcfce7; color:#166534; border:1px solid #bbf7d0; } /* 田代 */
 
-    /* Toast */
     .toast-in{ animation:toastIn .18s ease-out; }
     @keyframes toastIn{ from{ transform:translateY(8px); opacity:0; } to{ transform:translateY(0); opacity:1; } }
 
-    /* Modal */
     .modal-backdrop{ background:rgba(15,23,42,.55); }
   </style>
 
@@ -72,7 +64,6 @@
 </head>
 
 <body class="bg-slate-50 text-slate-800 min-h-screen">
-  <!-- Top Nav -->
   <header class="no-print sticky top-0 z-40 bg-white/75 backdrop-blur-md border-b border-slate-200">
     <div class="max-w-[1400px] mx-auto px-4 py-3 flex flex-wrap items-center gap-3">
       <div class="flex items-center gap-2 mr-auto">
@@ -85,11 +76,10 @@
         </div>
         <div class="leading-tight">
           <div class="text-lg font-black tracking-tight">スクールバス乗車確認</div>
-          <div class="text-[11px] font-bold text-slate-400">下校のみ（登校機能は削除） / 担任チェック / 全校モニタ / 印刷</div>
+          <div class="text-[11px] font-bold text-slate-400">下校のみ / 初期＝未チェック（基本は乗車しない）</div>
         </div>
       </div>
 
-      <!-- Date (下校固定) -->
       <div class="flex items-center gap-2 bg-slate-100 rounded-2xl p-2 border border-slate-200">
         <button id="btn-prev-day" class="tap px-3 py-2 rounded-xl bg-white border border-slate-200 shadow-sm text-xs font-black hover:bg-slate-50" title="前日">◀</button>
         <input id="date-picker" type="date" class="bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm font-black outline-none focus:ring-2 focus:ring-blue-500" />
@@ -97,13 +87,11 @@
         <div class="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-black">下校</div>
       </div>
 
-      <!-- Cloud status -->
       <div class="flex items-center gap-2">
         <div id="cloud-pill" class="px-3 py-2 rounded-2xl border text-xs font-black bg-white border-slate-200 text-slate-500">☁ ローカル</div>
         <button id="btn-fullscreen" class="tap px-3 py-2 rounded-2xl bg-slate-900 text-white text-xs font-black shadow-lg hover:bg-black">全画面</button>
       </div>
 
-      <!-- Tabs -->
       <nav class="w-full md:w-auto md:ml-auto">
         <div class="flex bg-slate-100 p-1 rounded-2xl border border-slate-200 overflow-x-auto">
           <button class="px-4 py-2 rounded-xl text-xs md:text-sm transition-all tab-active" id="tab-check" onclick="UI.switchTab('check')">担任チェック</button>
@@ -116,7 +104,6 @@
   </header>
 
   <main class="print-shell max-w-[1400px] mx-auto px-4 py-6 space-y-6">
-    <!-- Overview bar（モニタ時は自動で非表示にする） -->
     <section id="section-overview" class="no-print grid grid-cols-1 lg:grid-cols-3 gap-4">
       <div class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm">
         <div class="flex items-start justify-between gap-3">
@@ -137,7 +124,7 @@
       <div class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm">
         <div class="flex items-start justify-between gap-3">
           <div>
-            <div class="text-[11px] font-black text-slate-400 tracking-widest uppercase">全校 乗車予定</div>
+            <div class="text-[11px] font-black text-slate-400 tracking-widest uppercase">全校 乗車（チェック済）</div>
             <div class="text-4xl font-black tracking-tight text-slate-900" id="school-ride-count">--</div>
             <div class="text-xs font-bold text-slate-500 mt-1" id="school-ride-sub">--</div>
           </div>
@@ -188,19 +175,20 @@
         <div class="ml-auto flex flex-wrap items-center gap-2">
           <button id="btn-class-done" class="tap px-5 py-2 rounded-2xl text-sm font-black border-2 border-blue-600 text-blue-700 hover:bg-blue-50">学級確認を完了</button>
           <button id="btn-class-unlock" class="tap px-4 py-2 rounded-2xl text-xs font-black bg-slate-100 border border-slate-200 hover:bg-slate-200 hidden">ロック解除</button>
-          <button id="btn-mark-all-ride" class="tap px-4 py-2 rounded-2xl text-xs font-black bg-emerald-50 border border-emerald-100 text-emerald-700 hover:bg-emerald-100">全員 乗車</button>
-          <button id="btn-mark-all-off" class="tap px-4 py-2 rounded-2xl text-xs font-black bg-rose-50 border border-rose-100 text-rose-700 hover:bg-rose-100">全員 不乗</button>
+
+          <button id="btn-mark-all-ride" class="tap px-4 py-2 rounded-2xl text-xs font-black bg-blue-600 text-white shadow-lg shadow-blue-100 hover:bg-blue-700">全員 乗車</button>
+          <button id="btn-mark-all-clear" class="tap px-4 py-2 rounded-2xl text-xs font-black bg-slate-200 text-slate-700 hover:bg-slate-300">全員 クリア</button>
         </div>
       </div>
 
       <div id="check-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3"></div>
 
       <div class="no-print text-xs text-slate-500 font-bold">
-        ヒント：カードを<span class="font-black text-slate-700">1タップ</span>で「乗車/不乗」。詳細（欠席/送迎/備考）はカード右上の<span class="font-black text-slate-700">⋯</span>から。
+        使い方：<span class="font-black text-slate-700">未チェック</span>から<span class="font-black text-slate-700">乗車</span>だけをタップで色付きに。学級確認完了で「その学級は確認済み」になります。
       </div>
     </section>
 
-    <!-- 2) Monitor（ノースクロール：全児童を同一画面に収める） -->
+    <!-- 2) Monitor -->
     <section id="section-monitor" class="hidden space-y-4">
       <div class="no-print bg-slate-900 text-white rounded-3xl p-5 shadow-2xl flex flex-wrap items-center gap-3">
         <div class="flex items-center gap-3 mr-auto">
@@ -224,15 +212,14 @@
 
       <div id="monitor-summary" class="grid grid-cols-2 md:grid-cols-4 gap-3"></div>
 
-      <!-- Fit root（ここに収まるように自動縮小） -->
-      <div id="monitor-fit-root" class="no-print bg-white border border-slate-200 rounded-3xl p-3 shadow-sm overflow-hidden">
+      <div id="monitor-fit-root" class="no-print bg-white border border-slate-200 rounded-3xl p-2 shadow-sm overflow-hidden">
         <div id="monitor-fit" class="origin-top-left">
-          <div id="monitor-grid" class="grid gap-3"></div>
+          <div id="monitor-grid" class="grid gap-2"></div>
         </div>
       </div>
 
       <div class="no-print text-[11px] font-bold text-slate-500">
-        ※ スクロール不要：画面に収まらない場合は自動で縮小して全員表示します（大型モニタ常時表示向け）。
+        ※ スクロール不要：画面に収まらない場合は自動縮小して全員表示します（1クラス最大20人想定のコンパクト表示）。
       </div>
     </section>
 
@@ -241,7 +228,7 @@
       <div class="no-print bg-white border border-slate-200 rounded-3xl p-5 shadow-sm flex flex-wrap items-center gap-3">
         <div class="mr-auto">
           <div class="text-lg font-black text-slate-800">印刷プレビュー（下校）</div>
-          <div class="text-xs font-bold text-slate-500">チェック欄・備考欄つき。形式切替もできます。</div>
+          <div class="text-xs font-bold text-slate-500">チェック欄・備考欄つき。</div>
         </div>
 
         <div class="flex items-center gap-2">
@@ -267,14 +254,11 @@
 
     <!-- 4) Settings -->
     <section id="section-settings" class="hidden space-y-6 no-print">
-      <!-- App / Cloud -->
       <div class="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
         <div class="flex flex-wrap items-start gap-4">
           <div class="mr-auto">
             <div class="text-xl font-black text-slate-800">運用設定</div>
-            <div class="text-xs font-bold text-slate-500 mt-1">
-              職員室モニタと担任端末で共有したい場合はFirebase設定で同期できます（未設定ならローカル動作）。
-            </div>
+            <div class="text-xs font-bold text-slate-500 mt-1">職員室モニタと担任端末で共有したい場合はFirebase設定で同期できます（未設定ならローカル）。</div>
           </div>
           <div class="flex gap-2">
             <button id="btn-save-config" class="tap px-5 py-2 rounded-2xl bg-blue-600 text-white text-sm font-black shadow-lg shadow-blue-100 hover:bg-blue-700">設定を保存</button>
@@ -326,7 +310,6 @@
         </div>
       </div>
 
-      <!-- Roster editor -->
       <div class="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
         <div class="flex flex-wrap items-center gap-3">
           <div class="mr-auto">
@@ -412,7 +395,7 @@
     </section>
   </main>
 
-  <!-- Student Detail Modal -->
+  <!-- Modal -->
   <div id="modal" class="hidden fixed inset-0 z-50">
     <div class="absolute inset-0 modal-backdrop"></div>
     <div class="relative max-w-xl mx-auto mt-10 sm:mt-16 px-4">
@@ -439,7 +422,7 @@
 
           <div class="flex flex-wrap items-center gap-2">
             <button id="modal-save" class="tap px-6 py-3 rounded-2xl bg-slate-900 text-white font-black shadow-xl hover:bg-black">保存</button>
-            <button id="modal-toggle" class="tap px-6 py-3 rounded-2xl bg-blue-600 text-white font-black shadow-lg shadow-blue-100 hover:bg-blue-700">乗車/不乗 切替</button>
+            <button id="modal-toggle" class="tap px-6 py-3 rounded-2xl bg-blue-600 text-white font-black shadow-lg shadow-blue-100 hover:bg-blue-700">乗車/未チェック 切替</button>
             <div class="ml-auto text-xs font-bold text-slate-500" id="modal-updated">--</div>
           </div>
         </div>
@@ -456,22 +439,22 @@
 
 <script>
 /* =========================
-   Bus Checker (下校のみ) v11
-   - 登校(AM)は完全削除
-   - 日々の状態：日付ごと（便固定：下校）
-   - 全校モニタ：スクロール不要（自動フィット縮小）
+   Bus Checker (下校のみ) v12
+   - 初期状態：未チェック（基本は乗車しない）
+   - 乗車：カード全体に色
+   - モニタ：1クラス最大20人想定で余白・枠を縮小（ノースクロール＆自動フィット維持）
 ========================= */
 
 const APP = {
-  version: "v11",
-  storageKey: "busCheckerV11",
+  version: "v12",
+  storageKey: "busCheckerV12",
   busTypes: ["上瀑バス","総元バス","田代バス"],
   statuses: [
-    { key:"ride",   label:"乗車",  chip:"chip-ride",   short:"乗" },
-    { key:"off",    label:"不乗",  chip:"chip-off",    short:"不" },
-    { key:"absent", label:"欠席",  chip:"chip-absent", short:"欠" },
-    { key:"pickup", label:"送迎",  chip:"chip-pickup", short:"送" },
-    { key:"other",  label:"その他", chip:"chip-other", short:"他" }
+    { key:"none",   label:"未チェック", chip:"chip-none",   short:"未" },
+    { key:"ride",   label:"乗車",       chip:"chip-ride",   short:"乗" },
+    { key:"absent", label:"欠席",       chip:"chip-absent", short:"欠" },
+    { key:"pickup", label:"送迎",       chip:"chip-pickup", short:"送" },
+    { key:"other",  label:"その他",     chip:"chip-other",  short:"他" }
   ]
 };
 
@@ -520,72 +503,74 @@ function showToast(msg){
   showToast._to=setTimeout(()=>t.classList.add("hidden"), 2200);
 }
 
+function normalizeStatus(k){
+  // 旧データ互換：off/unknownは未チェック扱い
+  if(!k) return "none";
+  if(k==="off") return "none";
+  const ok = APP.statuses.some(x=>x.key===k);
+  return ok ? k : "none";
+}
+
 /* -------------------------
-   Local DB + Migration
+   Local DB
 ------------------------- */
 function defaultDB(){
   return {
-    config:{
-      displayName:"",
-      mode:"local",        // "local" | "cloud"
-      schoolId:"otaki-es",
-      firebaseJSON:""
-    },
+    config:{ displayName:"", mode:"local", schoolId:"otaki-es", firebaseJSON:"" },
     roster:[
       { id: 1, class:"1-1", num:1, name:"佐藤 太郎", bus:"上瀑バス", stop:"上瀑駅前" },
       { id: 2, class:"1-1", num:2, name:"鈴木 花子", bus:"総元バス", stop:"総元小学校" },
       { id: 3, class:"2-1", num:1, name:"田中 一郎", bus:"田代バス", stop:"田代中央" },
     ],
-    daily:{
-      // [dateKey]: { states:{[id]:{status,note,ts,by}}, classDone:{[class]:bool}, updatedAt, updatedBy }
-    }
+    daily:{}
   };
 }
-
 function loadDB(){
   try{
-    // 旧版(v10)のキーが残っていたら移行（登校は破棄し、下校(PM)だけ採用）
-    const raw11 = localStorage.getItem(APP.storageKey);
-    if(raw11){
-      const obj=JSON.parse(raw11);
+    const raw = localStorage.getItem(APP.storageKey);
+    if(raw){
+      const obj=JSON.parse(raw);
       obj.config ||= defaultDB().config;
       obj.roster ||= [];
       obj.daily ||= {};
       return obj;
     }
-
+    // 旧版(v11/v10)から移行（登校は破棄。状態は残しつつoff→noneに読み替え）
+    const raw11 = localStorage.getItem("busCheckerV11");
     const raw10 = localStorage.getItem("busCheckerV10");
-    if(raw10){
-      const old = JSON.parse(raw10);
-      const migrated = defaultDB();
+    const base = defaultDB();
+    const src = raw11 ? JSON.parse(raw11) : (raw10 ? JSON.parse(raw10) : null);
+    if(src){
+      base.config = src.config || base.config;
+      base.roster = src.roster || base.roster;
 
-      migrated.config = old.config || migrated.config;
-      migrated.roster = old.roster || migrated.roster;
-
-      // old.daily[date][AM/PM]  -> new.daily[date] = PM優先
-      migrated.daily = {};
-      if(old.daily && typeof old.daily === "object"){
-        for(const dk of Object.keys(old.daily)){
-          const v = old.daily[dk];
-          if(v && typeof v === "object" && (v.AM || v.PM)){
-            migrated.daily[dk] = v.PM || v.AM || { states:{}, classDone:{}, updatedAt:0, updatedBy:"" };
-          }else if(v && typeof v === "object" && v.states){
-            migrated.daily[dk] = v;
+      base.daily = {};
+      if(src.daily && typeof src.daily==="object"){
+        for(const dk of Object.keys(src.daily)){
+          const v = src.daily[dk];
+          // v10: {AM:{}, PM:{}} -> PM優先
+          const daily = (v && (v.PM || v.AM)) ? (v.PM || v.AM) : v;
+          if(daily && typeof daily==="object"){
+            // states内のstatusを正規化
+            const states = daily.states || {};
+            const fixedStates = {};
+            for(const sid of Object.keys(states)){
+              const st = states[sid] || {};
+              fixedStates[sid] = { ...st, status: normalizeStatus(st.status) };
+            }
+            base.daily[dk] = { ...daily, states: fixedStates };
           }
         }
       }
-
-      localStorage.setItem(APP.storageKey, JSON.stringify(migrated));
-      return migrated;
+      localStorage.setItem(APP.storageKey, JSON.stringify(base));
+      return base;
     }
-
-    return defaultDB();
+    return base;
   }catch(e){
     console.warn(e);
     return defaultDB();
   }
 }
-
 function saveDB(){ localStorage.setItem(APP.storageKey, JSON.stringify(DB)); }
 let DB = loadDB();
 
@@ -608,7 +593,7 @@ const State = {
 };
 
 /* -------------------------
-   Daily helpers (日付のみ)
+   Daily helpers
 ------------------------- */
 function ensureDaily(dateK){
   DB.daily[dateK] ||= { states:{}, classDone:{}, updatedAt:0, updatedBy:"" };
@@ -617,13 +602,17 @@ function ensureDaily(dateK){
 function getDailyState(dateK, studentId){
   const daily = State.dailyDoc || ensureDaily(dateK);
   const st = daily.states?.[studentId];
-  if(st) return st;
-  return { status:"ride", note:"", ts:0, by:"" }; // default
+  if(st){
+    return { ...st, status: normalizeStatus(st.status) };
+  }
+  // ★初期は未チェック（基本は乗車しない）
+  return { status:"none", note:"", ts:0, by:"" };
 }
 function setDailyStateLocal(dateK, studentId, patch){
   const daily = ensureDaily(dateK);
-  const prev = daily.states[studentId] ? {...daily.states[studentId]} : { status:"ride", note:"", ts:0, by:"" };
-  const next = { ...prev, ...patch, ts: nowTs(), by:(DB.config.displayName || "—") };
+  const prevRaw = daily.states[studentId] ? {...daily.states[studentId]} : { status:"none", note:"", ts:0, by:"" };
+  const prev = { ...prevRaw, status: normalizeStatus(prevRaw.status) };
+  const next = { ...prev, ...patch, status: normalizeStatus(patch.status ?? prev.status), ts: nowTs(), by:(DB.config.displayName || "—") };
   daily.states[studentId] = next;
   daily.updatedAt = nowTs();
   daily.updatedBy = DB.config.displayName || "—";
@@ -673,34 +662,12 @@ function createLocalBackend(){
   return {
     type:"local",
     init: async()=>true,
-    subscribeRoster:(cb)=>{
-      rosterListeners.push(cb); cb(DB.roster);
-      return ()=> rosterListeners = rosterListeners.filter(x=>x!==cb);
-    },
-    saveRoster: async(roster)=>{
-      DB.roster = roster; saveDB();
-      rosterListeners.forEach(cb=>cb(DB.roster));
-      return true;
-    },
-    subscribeDaily:(dateK, cb)=>{
-      dailyListeners.push(cb); cb(ensureDaily(dateK));
-      return ()=> dailyListeners = dailyListeners.filter(x=>x!==cb);
-    },
-    updateStudent: async(dateK, studentId, patch)=>{
-      const {prev,next}=setDailyStateLocal(dateK, studentId, patch);
-      dailyListeners.forEach(cb=>cb(ensureDaily(dateK)));
-      return {prev,next};
-    },
-    updateClassDone: async(dateK, className, done)=>{
-      setClassDoneLocal(dateK, className, done);
-      dailyListeners.forEach(cb=>cb(ensureDaily(dateK)));
-      return true;
-    },
-    resetDaily: async(dateK)=>{
-      resetDailyLocal(dateK);
-      dailyListeners.forEach(cb=>cb(ensureDaily(dateK)));
-      return true;
-    }
+    subscribeRoster:(cb)=>{ rosterListeners.push(cb); cb(DB.roster); return ()=> rosterListeners = rosterListeners.filter(x=>x!==cb); },
+    saveRoster: async(roster)=>{ DB.roster = roster; saveDB(); rosterListeners.forEach(cb=>cb(DB.roster)); return true; },
+    subscribeDaily:(dateK, cb)=>{ dailyListeners.push(cb); cb(ensureDaily(dateK)); return ()=> dailyListeners = dailyListeners.filter(x=>x!==cb); },
+    updateStudent: async(dateK, studentId, patch)=>{ const r=setDailyStateLocal(dateK, studentId, patch); dailyListeners.forEach(cb=>cb(ensureDaily(dateK))); return r; },
+    updateClassDone: async(dateK, className, done)=>{ setClassDoneLocal(dateK, className, done); dailyListeners.forEach(cb=>cb(ensureDaily(dateK))); return true; },
+    resetDaily: async(dateK)=>{ resetDailyLocal(dateK); dailyListeners.forEach(cb=>cb(ensureDaily(dateK))); return true; }
   };
 }
 
@@ -731,19 +698,21 @@ function createCloudBackend(firebaseConfig, schoolId){
       return ()=>{ if(unsubRoster) unsubRoster(); unsubRoster=null; };
     },
     saveRoster: async(roster)=>{
-      await pathBase().doc(rosterDocId).set({
-        roster,
-        updatedAt: window.firebase.firestore.FieldValue.serverTimestamp()
-      }, {merge:true});
+      await pathBase().doc(rosterDocId).set({ roster, updatedAt: window.firebase.firestore.FieldValue.serverTimestamp() }, {merge:true});
       return true;
     },
     subscribeDaily:(dateK, cb)=>{
       if(unsubDaily) unsubDaily();
-      const docId=`daily_${dateK}`; // 下校のみ：日付だけ
+      const docId=`daily_${dateK}`;
       unsubDaily = pathBase().doc(docId).onSnapshot((snap)=>{
         const data=snap.data()||{};
+        const states = data.states || {};
+        // status正規化
+        for(const sid of Object.keys(states)){
+          if(states[sid] && states[sid].status) states[sid].status = normalizeStatus(states[sid].status);
+        }
         const daily={
-          states: data.states || {},
+          states,
           classDone: data.classDone || {},
           updatedAt: data.updatedAt ? (data.updatedAt.toMillis ? data.updatedAt.toMillis() : data.updatedAt) : 0,
           updatedBy: data.updatedBy || ""
@@ -756,8 +725,9 @@ function createCloudBackend(firebaseConfig, schoolId){
       const docId=`daily_${dateK}`;
       const ref=pathBase().doc(docId);
 
-      const prev = (State.dailyDoc?.states?.[studentId]) ? {...State.dailyDoc.states[studentId]} : { status:"ride", note:"", ts:0, by:"" };
-      const next = { ...prev, ...patch, ts: nowTs(), by:(DB.config.displayName || "—") };
+      const prevRaw = (State.dailyDoc?.states?.[studentId]) ? {...State.dailyDoc.states[studentId]} : { status:"none", note:"", ts:0, by:"" };
+      const prev = { ...prevRaw, status: normalizeStatus(prevRaw.status) };
+      const next = { ...prev, ...patch, status: normalizeStatus(patch.status ?? prev.status), ts: nowTs(), by:(DB.config.displayName || "—") };
 
       const updateObj={};
       updateObj[`states.${studentId}`]=next;
@@ -800,8 +770,6 @@ const UI = {
       $(`#tab-${t}`).classList.toggle("tab-active", t===tab);
       $(`#tab-${t}`).classList.toggle("text-slate-500", t!==tab);
     });
-
-    // モニタは常時表示想定：overviewを消してスペース確保
     $("#section-overview").classList.toggle("hidden", tab==="monitor");
 
     if(tab==="check") renderCheck();
@@ -841,8 +809,6 @@ const UI = {
     };
     $("#modal-toggle").onclick = async ()=>{
       await Actions.quickToggle(s.id);
-      const st2 = getDailyState(State.date, s.id);
-      State.modal.status = st2.status;
       UI.openModal(s.id);
     };
 
@@ -872,7 +838,8 @@ const UI = {
 const Actions = {
   async quickToggle(studentId){
     const st = getDailyState(State.date, studentId);
-    const nextStatus = (st.status === "ride") ? "off" : "ride";
+    // ★未チェック ⇔ 乗車（基本運用）
+    const nextStatus = (st.status === "ride") ? "none" : "ride";
     return await Actions.setStatus(studentId, nextStatus, st.note || "");
   },
 
@@ -889,10 +856,10 @@ const Actions = {
     State.undoStack.push({ type:"student", studentId, prev:{...prev}, date:State.date });
     if(State.undoStack.length>30) State.undoStack.shift();
 
-    await State.backend.updateStudent(State.date, studentId, { status: statusKey, note: note || "" });
+    await State.backend.updateStudent(State.date, studentId, { status: normalizeStatus(statusKey), note: note || "" });
     await State.backend.updateClassDone(State.date, s.class, false);
 
-    const label = APP.statuses.find(x=>x.key===statusKey)?.label || statusKey;
+    const label = APP.statuses.find(x=>x.key===normalizeStatus(statusKey))?.label || statusKey;
     showToast(`${s.class} ${s.num} ${s.name}：${label}`);
     return true;
   },
@@ -919,7 +886,7 @@ const Actions = {
 
     if(State.classLock){ showToast("ロック中です（ロック解除して編集）"); return; }
 
-    const label = APP.statuses.find(x=>x.key===statusKey)?.label || statusKey;
+    const label = APP.statuses.find(x=>x.key===normalizeStatus(statusKey))?.label || statusKey;
     if(!confirm(`${cls} を一括で「${label}」にしますか？`)) return;
 
     for(const s of list){
@@ -935,7 +902,7 @@ const Actions = {
     if(!item){ showToast("戻す操作がありません"); return; }
     if(item.type==="student"){
       if(item.date !== State.date){ showToast("別日の操作は戻せません（画面の日付を合わせてください）"); return; }
-      await State.backend.updateStudent(State.date, item.studentId, { ...item.prev });
+      await State.backend.updateStudent(State.date, item.studentId, { ...item.prev, status: normalizeStatus(item.prev.status) });
       const s = State.roster.find(x=>String(x.id)===String(item.studentId));
       if(s) await State.backend.updateClassDone(State.date, s.class, false);
       showToast("直前の操作を戻しました");
@@ -946,7 +913,7 @@ const Actions = {
     if(!confirm("この日付の『日々の状態』をすべてクリアしますか？（名簿は残ります）")) return;
     await State.backend.resetDaily(State.date);
     State.undoStack=[];
-    showToast("日々の状態をクリアしました");
+    showToast("日々の状態をクリアしました（全員：未チェックに戻りました）");
   }
 };
 
@@ -963,7 +930,7 @@ function renderOverview(){
   $("#bus-summary-chips").innerHTML = APP.busTypes.map(b=>{
     const cnt = busCounts[b] || 0;
     return `
-      <span class="chip ${cnt? "":"opacity-50"} ${b.includes("上瀑")? "chip-pickup": b.includes("総元")? "chip-other": "chip-ride"}">
+      <span class="chip ${cnt? "":"opacity-50"} chip-ride">
         <span class="px-2 py-0.5 rounded-lg text-[10px] font-black ${busClass(b)}">${esc(busShort(b))}</span>
         <span>${esc(b)}：${cnt}名</span>
       </span>
@@ -1027,31 +994,55 @@ function renderCheck(){
   list.forEach(s=>{
     const st = getDailyState(State.date, s.id);
     const info = APP.statuses.find(x=>x.key===st.status) || APP.statuses[0];
-    const ride = st.status==="ride";
     const locked = State.classLock;
 
+    // ★カード全体の色：乗車はフルカラー
+    let cardClass = "bg-white border-slate-200";
+    let nameClass = "text-slate-900";
+    let subClass  = "text-slate-600";
+    let topBtnClass = "bg-white/80 border-slate-200 text-slate-700 hover:bg-white";
+
+    if(st.status==="ride"){
+      cardClass = "bg-blue-600 border-blue-700 shadow-lg shadow-blue-100";
+      nameClass = "text-white";
+      subClass  = "text-blue-50";
+      topBtnClass = "bg-white/15 border-white/20 text-white hover:bg-white/20";
+    }else if(st.status==="none"){
+      cardClass = "bg-white border-slate-200";
+    }else if(st.status==="pickup"){
+      cardClass = "bg-emerald-500 border-emerald-600 shadow-lg shadow-emerald-100";
+      nameClass = "text-white"; subClass="text-emerald-50";
+      topBtnClass = "bg-white/15 border-white/20 text-white hover:bg-white/20";
+    }else if(st.status==="absent"){
+      cardClass = "bg-slate-200 border-slate-300";
+      nameClass = "text-slate-700"; subClass="text-slate-600";
+      topBtnClass = "bg-white/60 border-white/60 text-slate-700 hover:bg-white";
+    }else if(st.status==="other"){
+      cardClass = "bg-amber-400 border-amber-500 shadow-lg shadow-amber-100";
+      nameClass = "text-amber-950"; subClass="text-amber-900";
+      topBtnClass = "bg-white/40 border-white/40 text-amber-950 hover:bg-white/50";
+    }
+
     const card=document.createElement("div");
-    card.className = `tap relative rounded-3xl border-2 shadow-sm p-3 h-[112px] flex flex-col justify-between cursor-pointer
-      ${ride ? "bg-white border-blue-500 ring-4 ring-blue-50" : "bg-slate-100 border-transparent opacity-90"}
-      ${locked ? "pointer-events-none opacity-60" : ""}`;
+    card.className = `tap relative rounded-3xl border-2 p-3 h-[116px] flex flex-col justify-between cursor-pointer ${cardClass} ${locked ? "pointer-events-none opacity-60" : ""}`;
     card.onclick = ()=> Actions.quickToggle(s.id);
 
     card.innerHTML = `
       <div class="flex items-start justify-between gap-2">
-        <div class="text-[10px] font-black text-slate-400">NO.${esc(s.num)}</div>
-        <button class="tap pointer-events-auto px-2 py-1 rounded-xl bg-white/80 border border-slate-200 text-xs font-black text-slate-700 hover:bg-white"
+        <div class="text-[10px] font-black ${st.status==="ride"||st.status==="pickup" ? "text-white/80" : "text-slate-400"}">NO.${esc(s.num)}</div>
+        <button class="tap pointer-events-auto px-2 py-1 rounded-xl border text-xs font-black ${topBtnClass}"
           onclick="event.stopPropagation(); UI.openModal('${esc(s.id)}')">⋯</button>
       </div>
 
       <div class="min-w-0">
-        <div class="font-black text-sm text-slate-900 truncate">${esc(s.name)}</div>
+        <div class="font-black text-sm truncate ${nameClass}">${esc(s.name)}</div>
         <div class="mt-1 flex items-center gap-2">
           <span class="chip ${info.chip}">${esc(info.label)}</span>
-          ${st.note ? `<span class="text-[10px] font-black text-amber-700 bg-amber-50 border border-amber-100 px-2 py-1 rounded-xl truncate">📝 ${esc(st.note)}</span>` : ``}
+          ${st.note ? `<span class="text-[10px] font-black ${st.status==="ride"||st.status==="pickup" ? "text-white" : "text-amber-700"} ${st.status==="ride"||st.status==="pickup" ? "bg-white/15 border border-white/20" : "bg-amber-50 border border-amber-100"} px-2 py-1 rounded-xl truncate">📝 ${esc(st.note)}</span>` : ``}
         </div>
       </div>
 
-      <div class="text-[10px] font-bold text-slate-500 truncate">
+      <div class="text-[10px] font-bold truncate ${subClass}">
         <span class="px-2 py-0.5 rounded-lg ${busClass(s.bus)}">${esc(busShort(s.bus))}</span>
         <span class="ml-1">${esc(s.stop)}</span>
       </div>
@@ -1071,17 +1062,16 @@ function renderCheck(){
 
 function renderMonitor(){
   const { roster, classes, classDone, busCounts, rideCount, doneCount } = derived();
-
   $("#monitor-subtitle").textContent = `${jpDateLabel(State.date)} ｜ 確認 ${doneCount}/${classes.length}`;
 
   $("#monitor-summary").innerHTML = `
-    <div class="bg-white border border-slate-200 rounded-3xl p-4 shadow-sm">
-      <div class="text-[11px] font-black text-slate-400 tracking-widest uppercase">全校 乗車予定</div>
+    <div class="bg-white border border-slate-200 rounded-3xl p-3 shadow-sm">
+      <div class="text-[11px] font-black text-slate-400 tracking-widest uppercase">全校 乗車</div>
       <div class="text-3xl font-black mt-1">${rideCount}名</div>
       <div class="text-xs font-bold text-slate-500 mt-1">学級確認：${doneCount}/${classes.length}</div>
     </div>
     ${APP.busTypes.map(b=>`
-      <div class="bg-white border border-slate-200 rounded-3xl p-4 shadow-sm">
+      <div class="bg-white border border-slate-200 rounded-3xl p-3 shadow-sm">
         <div class="text-[11px] font-black text-slate-400 tracking-widest uppercase">${esc(b)}</div>
         <div class="text-3xl font-black mt-1">${busCounts[b]||0}<span class="text-xs font-black text-slate-400 ml-1">名</span></div>
         <div class="mt-2">
@@ -1091,13 +1081,12 @@ function renderMonitor(){
     `).join("")}
   `;
 
-  // モニタは「全員表示」：学級カードのグリッド（横スクロールなし）
   const filter = State.monitorFilter;
   const grid = $("#monitor-grid");
   grid.innerHTML="";
 
-  // 画面に応じて自動列数（auto-fit）
-  grid.style.gridTemplateColumns = "repeat(auto-fit, minmax(280px, 1fr))";
+  // ★余計な枠を狭く：最小幅を縮める
+  grid.style.gridTemplateColumns = "repeat(auto-fit, minmax(220px, 1fr))";
 
   classes.forEach(cls=>{
     const done = classDone[cls]===true;
@@ -1107,43 +1096,45 @@ function renderMonitor(){
     const kids = roster.filter(s=>s.class===cls).sort((a,b)=>a.num-b.num);
     const riders = kids.filter(s=>getDailyState(State.date, s.id).status==="ride");
 
-    // 学級ヘッダ用：バス内訳（乗車のみ）
     const breakdown = APP.busTypes.map(b=>{
       const cnt = riders.filter(s=>s.bus===b).length;
-      return cnt>0 ? `<span class="px-2 py-1 rounded-xl text-[10px] font-black ${busClass(b)}">${esc(busShort(b))}${cnt}</span>` : "";
+      return cnt>0 ? `<span class="px-1.5 py-0.5 rounded-lg text-[10px] font-black ${busClass(b)}">${esc(busShort(b))}${cnt}</span>` : "";
     }).join("");
 
     const card = document.createElement("div");
-    card.className = "bg-white border border-slate-200 rounded-3xl p-3 shadow-sm";
+    card.className = "bg-white border border-slate-200 rounded-3xl p-2 shadow-sm";
     card.innerHTML = `
-      <div class="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
+      <div class="flex items-center justify-between gap-2 border-b border-slate-100 pb-1">
         <div class="flex items-center gap-2">
-          <div class="text-xl font-black italic tracking-tight">${esc(cls)}</div>
-          <span class="px-3 py-1 rounded-2xl bg-slate-100 border border-slate-200 text-xs font-black">${riders.length}名</span>
+          <div class="text-lg font-black italic tracking-tight">${esc(cls)}</div>
+          <span class="px-2 py-0.5 rounded-xl bg-slate-100 border border-slate-200 text-[11px] font-black">${riders.length}名</span>
         </div>
-        <div class="text-xs font-black ${done ? "text-emerald-700" : "text-amber-700"}">
+        <div class="text-[11px] font-black ${done ? "text-emerald-700" : "text-amber-700"}">
           ${done ? "● 完了" : "○ 未完"}
         </div>
       </div>
 
-      <div class="mt-2 flex flex-wrap gap-1">${breakdown || `<span class="text-xs font-bold text-slate-400">（乗車内訳なし）</span>`}</div>
+      <div class="mt-1 flex flex-wrap gap-1">${breakdown || `<span class="text-[11px] font-bold text-slate-400">内訳なし</span>`}</div>
 
-      <!-- 児童一覧（全員表示） -->
-      <div class="mt-3 grid gap-1">
+      <!-- ★1クラス20人想定：行を詰める（高さ・余白縮小） -->
+      <div class="mt-2 grid gap-1">
         ${kids.map(s=>{
           const st = getDailyState(State.date, s.id);
           const info = APP.statuses.find(x=>x.key===st.status) || APP.statuses[0];
+
+          // 乗車だけ目立たせる：背景の帯（薄青）
+          const rowBg = (st.status==="ride") ? "bg-blue-50 border-blue-100" : "bg-white border-slate-100";
           return `
-            <div class="grid grid-cols-[40px_1fr_46px_46px] items-center gap-2 px-2 py-1 rounded-2xl border border-slate-100">
-              <div class="w-10 h-7 rounded-xl bg-blue-600 text-white grid place-items-center font-black text-[12px]">${esc(s.num)}</div>
+            <div class="grid grid-cols-[28px_1fr_30px_30px] items-center gap-1 px-1.5 py-1 rounded-2xl border ${rowBg}">
+              <div class="w-7 h-6 rounded-xl bg-slate-900 text-white grid place-items-center font-black text-[11px]">${esc(s.num)}</div>
               <div class="min-w-0">
-                <div class="font-black truncate" style="font-size:12px">${esc(s.name)}</div>
+                <div class="font-black truncate" style="font-size:11px">${esc(s.name)}</div>
               </div>
               <div class="text-center">
-                <span class="px-2 py-1 rounded-xl text-[11px] font-black ${info.chip}">${esc(info.short)}</span>
+                <span class="px-1.5 py-0.5 rounded-lg text-[10px] font-black ${info.chip}">${esc(info.short)}</span>
               </div>
               <div class="text-center">
-                <span class="px-2 py-1 rounded-xl text-[11px] font-black ${busClass(s.bus)}">${esc(busShort(s.bus))}</span>
+                <span class="px-1.5 py-0.5 rounded-lg text-[10px] font-black ${busClass(s.bus)}">${esc(busShort(s.bus))}</span>
               </div>
             </div>
           `;
@@ -1183,11 +1174,11 @@ function renderPrint(){
     APP.busTypes.forEach(busName=>{
       const rows = roster
         .filter(s=>getDailyState(State.date, s.id).status==="ride" && s.bus===busName)
-        .sort((a,b)=> sortClassKey(a.class,b.class) || (a.num-b.num));
+        .sort((a,b)=> a.class.localeCompare(b.class, undefined, {numeric:true}) || (a.num-b.num));
 
       const counts={};
       rows.forEach(s=>counts[s.class]=(counts[s.class]||0)+1);
-      const breakdown = Object.entries(counts).sort((a,b)=>sortClassKey(a[0],b[0])).map(([c,n])=>`${c}:${n}名`).join("、 ");
+      const breakdown = Object.entries(counts).sort((a,b)=>a[0].localeCompare(b[0], undefined, {numeric:true})).map(([c,n])=>`${c}:${n}名`).join("、 ");
 
       const page=document.createElement("div");
       page.className="print-page print-card rounded-3xl border border-slate-200 shadow-sm p-4 mb-6";
@@ -1242,7 +1233,7 @@ function renderPrint(){
             <tr class="bg-slate-100">
               <th style="width:60px">番号</th>
               <th>氏名</th>
-              <th style="width:90px">状態</th>
+              <th style="width:110px">状態</th>
               <th style="width:90px">バス</th>
               <th>バス停</th>
               <th style="width:70px">確認</th>
@@ -1273,15 +1264,13 @@ function renderPrint(){
   }
 }
 
-/* ---- Monitor fit（スクロールさせず全員表示） ---- */
+/* ---- Monitor fit ---- */
 function layoutMonitor(){
   const root=$("#monitor-fit-root");
   if(!root) return;
-  // ヘッダや余白を引いた高さにする（モニタ常時表示向け）
   const header=document.querySelector("header");
   const headerH=header ? header.offsetHeight : 0;
-  // main paddingなどを考慮して適度に控えめに
-  const h = Math.max(360, window.innerHeight - headerH - 170);
+  const h = Math.max(360, window.innerHeight - headerH - 150);
   root.style.height = h + "px";
 }
 function fitMonitor(){
@@ -1289,25 +1278,19 @@ function fitMonitor(){
   const root=$("#monitor-fit-root");
   const content=$("#monitor-fit");
   if(!root || !content) return;
-
-  // reset
   content.style.transform="scale(1)";
   content.style.transformOrigin="top left";
-
-  // measure
   const maxW = root.clientWidth;
   const maxH = root.clientHeight;
   const w = content.scrollWidth;
   const h = content.scrollHeight;
-
   if(w<=0 || h<=0) return;
-
   const scale = Math.min(maxW / w, maxH / h, 1);
   content.style.transform = `scale(${scale})`;
 }
 
 /* -------------------------
-   Settings / CSV / Export / Import
+   Settings / CSV / Export / Import (省略部分はそのまま動作)
 ------------------------- */
 function downloadBlob(content, filename, type="application/octet-stream"){
   const blob = new Blob([content], {type});
@@ -1320,7 +1303,7 @@ function exportJSON(){ downloadBlob(JSON.stringify(State.roster,null,2), `bus_ro
 function exportCSV(){
   const header=["id","class","num","name","bus","stop"];
   const lines=[header.join(",")].concat(
-    State.roster.slice().sort((a,b)=>sortClassKey(a.class,b.class) || (a.num-b.num)).map(s=>{
+    State.roster.slice().sort((a,b)=>a.class.localeCompare(b.class, undefined, {numeric:true}) || (a.num-b.num)).map(s=>{
       return header.map(k=>{
         const v=(s[k] ?? "");
         const q=String(v).replace(/"/g,'""');
@@ -1360,7 +1343,6 @@ async function importCSV(file){
     alert(`CSVヘッダに必要項目がありません。\n必要：${required.join(", ")}\n現在：${header.join(", ")}`);
     return;
   }
-
   const roster = rows.slice(1).filter(r=>r.some(x=>String(x).trim()!=="")).map(r=>{
     const id = idx("id")>=0 ? Number(r[idx("id")]) : Date.now()+Math.floor(Math.random()*10000);
     return {
@@ -1434,7 +1416,7 @@ function renderSettings(){
 
   $("#roster-count-label").textContent = `全 ${State.roster.length} 名`;
 
-  $("#settings-list-body").innerHTML = State.roster.slice().sort((a,b)=>sortClassKey(a.class,b.class) || (a.num-b.num)).map(s=>`
+  $("#settings-list-body").innerHTML = State.roster.slice().sort((a,b)=>a.class.localeCompare(b.class, undefined, {numeric:true}) || (a.num-b.num)).map(s=>`
     <tr class="hover:bg-slate-50">
       <td class="p-3 font-black text-blue-700">${esc(s.class)}</td>
       <td class="p-3 font-black text-slate-500">${esc(s.num)}</td>
@@ -1515,6 +1497,12 @@ function setupSubscriptions(){
   });
 
   unsubDaily = State.backend.subscribeDaily(State.date, (daily)=>{
+    // status normalize
+    if(daily && daily.states){
+      for(const sid of Object.keys(daily.states)){
+        daily.states[sid].status = normalizeStatus(daily.states[sid].status);
+      }
+    }
     State.dailyDoc=daily;
     DB.daily[State.date]=daily; saveDB();
     renderAll();
@@ -1527,6 +1515,11 @@ function setupSubscriptions(){
 function resubscribeDaily(){
   if(unsubDaily){ unsubDaily(); unsubDaily=null; }
   unsubDaily = State.backend.subscribeDaily(State.date, (daily)=>{
+    if(daily && daily.states){
+      for(const sid of Object.keys(daily.states)){
+        daily.states[sid].status = normalizeStatus(daily.states[sid].status);
+      }
+    }
     State.dailyDoc=daily;
     DB.daily[State.date]=daily; saveDB();
     renderAll();
@@ -1549,7 +1542,6 @@ function renderAll(){
 }
 
 function bind(){
-  // date
   $("#date-picker").value = State.date;
   $("#date-picker").addEventListener("change",(e)=>{
     State.date = e.target.value || dateKey();
@@ -1558,27 +1550,22 @@ function bind(){
   $("#btn-prev-day").onclick=()=>{ State.date=addDays(State.date,-1); $("#date-picker").value=State.date; resubscribeDaily(); };
   $("#btn-next-day").onclick=()=>{ State.date=addDays(State.date, 1); $("#date-picker").value=State.date; resubscribeDaily(); };
 
-  // check
   $("#class-filter").addEventListener("change",()=>{ State.activeClass=$("#class-filter").value; renderCheck(); });
   $("#student-search").addEventListener("input",()=>renderCheck());
 
   $("#btn-class-done").onclick=()=>Actions.setClassDone(!(State.classLock));
   $("#btn-class-unlock").onclick=()=>Actions.unlockClass();
   $("#btn-mark-all-ride").onclick=()=>Actions.markAll("ride");
-  $("#btn-mark-all-off").onclick=()=>Actions.markAll("off");
+  $("#btn-mark-all-clear").onclick=()=>Actions.markAll("none");
 
-  // monitor
   $("#monitor-filter").addEventListener("change",(e)=>{ State.monitorFilter=e.target.value; renderMonitor(); layoutMonitor(); fitMonitor(); });
   $("#btn-monitor-refresh").onclick=()=>{ renderMonitor(); layoutMonitor(); fitMonitor(); showToast("更新しました"); };
 
-  // print
   $("#print-mode").addEventListener("change",(e)=>{ State.printMode=e.target.value; renderPrint(); });
 
-  // undo/reset
   $("#btn-undo").onclick=()=>Actions.undo();
   $("#btn-reset-daily").onclick=()=>Actions.resetDaily();
 
-  // fullscreen
   $("#btn-fullscreen").onclick=async()=>{
     try{
       if(!document.fullscreenElement){
@@ -1594,12 +1581,10 @@ function bind(){
     }
   };
 
-  // modal close on backdrop
   $("#modal").addEventListener("click",(e)=>{
     if(e.target && e.target.classList.contains("modal-backdrop")) UI.closeModal();
   });
 
-  // settings
   $("#btn-save-config").onclick=async()=>{
     DB.config.displayName=$("#cfg-display-name").value.trim();
     DB.config.schoolId=$("#cfg-school-id").value.trim() || "default";
@@ -1642,7 +1627,6 @@ function bind(){
     location.reload();
   };
 
-  // roster form
   $("#student-form").addEventListener("submit", async(e)=>{
     e.preventDefault();
     const editId=$("#edit-id").value;
@@ -1678,7 +1662,6 @@ function bind(){
   });
   $("#btn-cancel-edit").onclick=()=>Settings.cancelEdit();
 
-  // resize => monitor fit
   window.addEventListener("resize", ()=>{
     if(State.tab==="monitor"){
       layoutMonitor();
@@ -1692,12 +1675,11 @@ function bind(){
 ------------------------- */
 (async function init(){
   State.dailyDoc = (DB.daily?.[State.date]) || ensureDaily(State.date);
+  State.backend = createLocalBackend();
   await applyBackend();
   bind();
-  State.printMode = $("#print-mode")?.value || "bus";
   renderAll();
 })();
 </script>
 </body>
 </html>
-
