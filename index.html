@@ -18,20 +18,18 @@
 
     /* =========================
        PRINT（要望反映）
-       - 備考欄なし
-       - 氏名/バス停が収まるよう幅＋折返し最適化
-       - バス別：3便を1枚にまとめて出力（3カラム）
-       - ★見出しが1枚目だけで孤立しないよう、見出しをページ内に配置（renderPrint側で対応）
-       - ★クラス（○年○組）が1行で入るよう nowrap + 幅調整
-       - ★氏名は7文字想定：長い名前は自動縮小（renderPrint側で対応）
+       - ★縦向き（A4 portrait）
+       - 学級別：従来どおり（バス停あり）
+       - バス別：バス停列を削除 / 氏名7文字想定・長い場合は自動縮小（renderPrint側）
+       - ★上瀑バスのみ2列表示（renderPrint側）
     ========================= */
     @media print{
       .no-print{ display:none !important; }
       body{ background:white !important; margin:0; padding:0; }
       .print-shell{ max-width:100% !important; width:100% !important; padding:0 !important; margin:0 !important; }
 
-      /* ★A4横向きに固定（バス別の要望） */
-      @page{ size:A4 landscape; margin:7mm; }
+      /* ★A4縦向きに固定（バス別/学級別の要望） */
+      @page{ size:A4 portrait; margin:7mm; }
 
       .print-page{ display:block; width:100%; page-break-after:always; }
       .print-page:last-child{ page-break-after:auto; }
@@ -57,17 +55,11 @@
       .td-class{ font-weight:900 !important; white-space:nowrap !important; overflow:hidden !important; text-overflow:ellipsis !important; text-align:center !important; }
 
       /* =========================
-         ★バス別：3便を1枚に（3カラム）＋44名想定の超コンパクト
+         バス別：超コンパクト（縦向き）
       ========================= */
-      .print-bus-grid{
-        display:grid !important;
-        grid-template-columns: 1fr 1fr 1fr;
-        gap:3.6mm; /* ★少し詰めて1枚内の安定性UP */
-        align-items:start;
-      }
       .print-bus-card{
         border:2px solid #000 !important;
-        padding:2.0mm !important; /* ★少し詰める */
+        padding:2.0mm !important;
         page-break-inside:avoid;
       }
       .print-bus-title{
@@ -77,16 +69,15 @@
         line-height:1.1 !important;
       }
 
-      /* バス別だけ：折返し禁止（縦が増えると44行入らない） */
+      /* バス別だけ：折返し禁止（高さ節約） */
       .print-bus-card .td-name,
-      .print-bus-card .td-stop,
       .print-bus-card .td-class{
         white-space:nowrap !important;
         overflow:hidden !important;
         text-overflow:ellipsis !important;
       }
 
-      /* バス別テーブル：44行入れるための詰め */
+      /* バス別テーブル：詰め */
       .print-bus-card table th{
         background:#f3f4f6 !important;
         font-size:7.0pt !important;
@@ -99,10 +90,10 @@
         line-height:1.02 !important;
       }
       .print-bus-card table tbody tr{
-        height:4.02mm; /* ★わずかに詰める */
+        height:4.05mm;
       }
 
-      /* 学級別（担任控え）は現状維持（必要なら後で別調整） */
+      /* 学級別（担任控え）は現状維持 */
       .print-class-card{
         border:2px solid #000 !important;
         padding:3mm !important;
@@ -248,7 +239,7 @@
 
         <div class="ml-auto flex flex-wrap items-center gap-2">
           <button id="btn-class-done" class="tap px-5 py-2 rounded-2xl text-sm font-black border-2 border-blue-600 text-blue-700 hover:bg-blue-50">学級確認を完了</button>
-          <button id="btn-class-unlock" class="tap px-4 py-2 rounded-2xl text-xs font-black bg-slate-100 border border-slate-200 hover:bg-slate-200 hidden">ロック解除</button>
+          <button id="btn-class-unlock" class="tap px-4 py-2 rounded-2xl text-xs font-black bg-slate-100 border border-slate-200 hover:bg	cc-slate-200 hidden">ロック解除</button>
 
           <button id="btn-mark-all-ride" class="tap px-4 py-2 rounded-2xl text-xs font-black bg-blue-600 text-white shadow-lg shadow-blue-100 hover:bg-blue-700">全員 乗車</button>
           <button id="btn-mark-all-clear" class="tap px-4 py-2 rounded-2xl text-xs font-black bg-slate-200 text-slate-700 hover:bg-slate-300">全員 クリア</button>
@@ -264,9 +255,7 @@
 
     <!-- 2) Monitor -->
     <section id="section-monitor" class="hidden space-y-2">
-      <!-- ★枠（黒い帯）を削除して、スリムな操作列に変更 -->
       <div class="no-print flex flex-wrap items-center gap-2">
-        <!-- ★合計人数枠をスリム化（縦幅） -->
         <div id="monitor-summary" class="flex-1 min-w-[260px] bg-white border border-slate-200 rounded-2xl px-3 py-2 shadow-sm flex flex-wrap items-center gap-2"></div>
 
         <div class="flex items-center gap-2">
@@ -279,7 +268,6 @@
         </div>
       </div>
 
-      <!-- ★横幅を最大限：pを削って、mainもmonitor時はw-screen化（JSで切替） -->
       <div id="monitor-fit-root" class="no-print bg-white border border-slate-200 rounded-2xl p-0 shadow-sm overflow-hidden">
         <div id="monitor-fit" class="origin-top-left">
           <div id="monitor-grid" class="flex flex-row flex-nowrap gap-2"></div>
@@ -296,13 +284,13 @@
       <div class="no-print bg-white border border-slate-200 rounded-3xl p-5 shadow-sm flex flex-wrap items-center gap-3">
         <div class="mr-auto">
           <div class="text-lg font-black text-slate-800">印刷プレビュー（下校）</div>
-          <div class="text-xs font-bold text-slate-500">備考欄なし / 氏名・バス停が収まる幅に最適化。バス別は3便を1枚にまとめて出力します。</div>
+          <div class="text-xs font-bold text-slate-500">備考欄なし / バス別はバス停列を削除し、上瀑バスは2列表示。学級別は従来どおりバス停あり。</div>
         </div>
 
         <div class="flex items-center gap-2">
           <span class="text-[11px] font-black text-slate-400 tracking-widest uppercase">形式</span>
           <select id="print-mode" class="bg-slate-100 border border-slate-200 px-4 py-2 rounded-2xl font-black outline-none">
-            <option value="bus">バス別（3便を1枚）</option>
+            <option value="bus">バス別</option>
             <option value="class">学級別（担任控え）</option>
           </select>
         </div>
@@ -509,7 +497,7 @@
 <script>
 /* =========================
    Bus Checker (下校のみ) v12.3
-   - 印刷：備考欄なし、幅最適化、バス別は3便を1枚にまとめる
+   - 印刷：備考欄なし、幅最適化
    - クラウド：Firebase Auth（共通PW otakisho）＋ onSnapshot差分同期（ポーリングなし）
    - 5秒ごとUIハートビート（再描画/フィットのみ：read/write増やさない）
    - モニタ：折り返しなし横一列（学級カードを2段にしない）
@@ -781,7 +769,6 @@ function createCloudBackend(firebaseConfig, schoolId){
   async function ensureAuthSignedIn(){
     if(!auth) auth = window.firebase.auth();
     if(auth.currentUser) return true;
-    // 共有アカウント（共通PW）
     await auth.signInWithEmailAndPassword(CLOUD_AUTH.email, CLOUD_AUTH.password);
     return true;
   }
@@ -872,7 +859,6 @@ const UI = {
     });
     $("#section-overview").classList.toggle("hidden", tab==="monitor");
 
-    /* ★モニタ時：横幅を最大限（w-screen / max-w解除 / 余白を詰める） */
     const main = $("#main-shell");
     if(main){
       if(tab==="monitor"){
@@ -1153,7 +1139,6 @@ function renderCheck(){
 function renderMonitor(){
   const { roster, classes, classDone, busCounts, rideCount, doneCount } = derived();
 
-  /* ★スリムな上部バー（縦幅を削減） */
   $("#monitor-summary").innerHTML = `
     <span class="px-2 py-1 rounded-xl bg-slate-900 text-white text-[11px] font-black">全校モニタ（下校）</span>
     <span class="text-sm font-black text-slate-900">${jpDateLabel(State.date)}</span>
@@ -1168,7 +1153,6 @@ function renderMonitor(){
   const grid = $("#monitor-grid");
   grid.innerHTML="";
 
-  /* ★横幅の空きを減らす：表示対象数に合わせてカード幅を可変（ただし縮小fitが効く） */
   const rootEl = $("#monitor-fit-root");
   const rootW = rootEl ? rootEl.clientWidth : 1200;
 
@@ -1182,7 +1166,7 @@ function renderMonitor(){
   const n = Math.max(1, showClasses.length);
   const gapPx = 8;
   const computed = Math.floor((rootW - gapPx*(n-1)) / n);
-  const cardW = Math.min(360, Math.max(190, computed)); /* ★広いときは大きく、狭いときは縮む */
+  const cardW = Math.min(360, Math.max(190, computed));
 
   showClasses.forEach(cls=>{
     const done = classDone[cls]===true;
@@ -1227,17 +1211,17 @@ function renderMonitor(){
           const statusMini = showStatusMini ? `<span class="px-1.5 py-0.5 rounded-lg text-[10px] font-black ${info.chip}">${info.short}</span>` : "";
 
           return `
-            <div class="grid grid-cols-[30px_1fr_48px] items-center gap-1 px-1.5 py-1 rounded-2xl border ${rowBg}">
-              <div class="w-[30px] h-6 rounded-xl bg-slate-900 text-white grid place-items-center font-black text-[11px] leading-none">${s.num}</div>
+            <!-- ★氏名欄を最大限横に：右列をスリム化（34px） -->
+            <div class="grid grid-cols-[28px_1fr_34px] items-center gap-1 px-1.5 py-1 rounded-2xl border ${rowBg}">
+              <div class="w-[28px] h-6 rounded-xl bg-slate-900 text-white grid place-items-center font-black text-[11px] leading-none">${s.num}</div>
 
-              <div class="min-w-0 flex items-center gap-2">
-                <!-- ★児童名を最大限大きく -->
+              <div class="min-w-0 flex items-center gap-1.5">
                 <div class="min-w-0 font-black truncate" style="font-size:14px; line-height:1.15;">${s.name}</div>
                 ${statusMini}
               </div>
 
-              <div class="w-12 flex justify-end">
-                <span class="w-12 inline-flex justify-center px-0 py-0.5 rounded-lg text-[10px] font-black leading-none ${busClass(s.bus)}">${busShort(s.bus)}</span>
+              <div class="w-[34px] flex justify-end">
+                <span class="w-[34px] inline-flex justify-center px-0 py-0.5 rounded-lg text-[10px] font-black leading-none ${busClass(s.bus)}">${busShort(s.bus)}</span>
               </div>
             </div>
           `;
@@ -1272,79 +1256,138 @@ function renderPrint(){
     </div>
   `;
 
-  // バス別：3便を1枚にまとめる（3カラム）
+  // バス別（縦向き）：バス停列削除 / 上瀑は2列表示
   if(mode==="bus"){
-    const page=document.createElement("div");
-    page.className="print-page print-card rounded-3xl border border-slate-200 shadow-sm p-3";
-
-    /* ★見出しが1枚目で孤立しないよう、ページ内に配置 */
-    page.innerHTML = makeHeaderHTML();
-
-    const grid=document.createElement("div");
-    grid.className="print-bus-grid";
-
     APP.busTypes.forEach(busName=>{
       const rows = roster
         .filter(s=>getDailyState(State.date, s.id).status==="ride" && s.bus===busName)
         .sort((a,b)=> a.class.localeCompare(b.class, undefined, {numeric:true}) || (a.num-b.num));
 
+      const page=document.createElement("div");
+      page.className="print-page print-card rounded-3xl border border-slate-200 shadow-sm p-3";
+      page.innerHTML = makeHeaderHTML();
+
       const card=document.createElement("div");
       card.className="print-bus-card";
 
-      const compactClass = rows.length > 18 ? "compact" : "";
+      const isKamidaki = String(busName).includes("上瀑");
 
-      card.innerHTML = `
-        <div class="print-bus-title">■ ${busName}（${rows.length}名）</div>
-        <table class="${compactClass}">
-          <colgroup>
-            <col style="width:18%;">  <!-- ★クラス（少し広げる） -->
-            <col style="width:10%;">  <!-- ★番号 -->
-            <col style="width:40%;">  <!-- 氏名 -->
-            <col style="width:24%;">  <!-- バス停 -->
-            <col style="width:8%;">   <!-- 確認 -->
-          </colgroup>
-          <thead>
-            <tr>
-              <th>クラス</th>
-              <th>番号</th>
-              <th>氏名</th>
-              <th>バス停</th>
-              <th>□</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${
-              rows.length
-              ? rows.map(s=>{
-                  const clsLabel = formatClassLabel(s.class);
-                  const clsPt = fitFontPt(clsLabel, 7.4, 6, 6.2);     // ★クラスは6文字想定
-                  const namePt = fitFontPt(s.name,   7.4, 7, 6.0);     // ★氏名は7文字想定
-                  const clsStyle = clsPt ? `font-size:${clsPt}pt !important;` : "";
-                  const nameStyle = namePt ? `font-size:${namePt}pt !important;` : "";
-                  return `
-                    <tr>
-                      <td class="td-class" style="${clsStyle}">${esc(clsLabel)}</td>
-                      <td style="text-align:center; font-weight:800; white-space:nowrap;">${s.num}</td>
-                      <td class="td-name" style="${nameStyle}">${esc(s.name)}</td>
-                      <td class="td-stop">${esc(s.stop)}</td>
-                      <td style="text-align:center;">□</td>
-                    </tr>
-                  `;
-                }).join("")
-              : `<tr><td colspan="5" style="text-align:center; padding:6mm; font-weight:900; color:#64748b;">乗車予定なし</td></tr>`
-            }
-          </tbody>
-        </table>
-      `;
-      grid.appendChild(card);
+      if(isKamidaki){
+        const half = Math.ceil(rows.length/2);
+        const left = rows.slice(0, half);
+        const right = rows.slice(half);
+        const maxN = Math.max(left.length, right.length);
+
+        card.innerHTML = `
+          <div class="print-bus-title">■ ${busName}（${rows.length}名）</div>
+          <table>
+            <colgroup>
+              <col style="width:18%;">  <!-- クラス -->
+              <col style="width:8%;">   <!-- 番号 -->
+              <col style="width:21%;">  <!-- 氏名 -->
+              <col style="width:3%;">   <!-- □ -->
+              <col style="width:18%;">  <!-- クラス -->
+              <col style="width:8%;">   <!-- 番号 -->
+              <col style="width:21%;">  <!-- 氏名 -->
+              <col style="width:3%;">   <!-- □ -->
+            </colgroup>
+            <thead>
+              <tr>
+                <th>クラス</th><th>番号</th><th>氏名</th><th>□</th>
+                <th>クラス</th><th>番号</th><th>氏名</th><th>□</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${
+                maxN
+                ? Array.from({length:maxN}).map((_,i)=>{
+                    const a = left[i] || null;
+                    const b = right[i] || null;
+
+                    const aCls = a ? formatClassLabel(a.class) : "";
+                    const bCls = b ? formatClassLabel(b.class) : "";
+
+                    const aClsPt = a ? fitFontPt(aCls, 7.4, 6, 6.2) : null;
+                    const bClsPt = b ? fitFontPt(bCls, 7.4, 6, 6.2) : null;
+
+                    const aNamePt = a ? fitFontPt(a.name, 7.4, 7, 6.0) : null;
+                    const bNamePt = b ? fitFontPt(b.name, 7.4, 7, 6.0) : null;
+
+                    const aClsStyle = aClsPt ? `font-size:${aClsPt}pt !important;` : "";
+                    const bClsStyle = bClsPt ? `font-size:${bClsPt}pt !important;` : "";
+                    const aNameStyle = aNamePt ? `font-size:${aNamePt}pt !important;` : "";
+                    const bNameStyle = bNamePt ? `font-size:${bNamePt}pt !important;` : "";
+
+                    return `
+                      <tr>
+                        <td class="td-class" style="${aClsStyle}">${a ? esc(aCls) : ""}</td>
+                        <td style="text-align:center; font-weight:800; white-space:nowrap;">${a ? a.num : ""}</td>
+                        <td class="td-name" style="${aNameStyle}">${a ? esc(a.name) : ""}</td>
+                        <td style="text-align:center;">${a ? "□" : ""}</td>
+
+                        <td class="td-class" style="${bClsStyle}">${b ? esc(bCls) : ""}</td>
+                        <td style="text-align:center; font-weight:800; white-space:nowrap;">${b ? b.num : ""}</td>
+                        <td class="td-name" style="${bNameStyle}">${b ? esc(b.name) : ""}</td>
+                        <td style="text-align:center;">${b ? "□" : ""}</td>
+                      </tr>
+                    `;
+                  }).join("")
+                : `<tr><td colspan="8" style="text-align:center; padding:6mm; font-weight:900; color:#64748b;">乗車予定なし</td></tr>`
+              }
+            </tbody>
+          </table>
+        `;
+      }else{
+        card.innerHTML = `
+          <div class="print-bus-title">■ ${busName}（${rows.length}名）</div>
+          <table>
+            <colgroup>
+              <col style="width:24%;">  <!-- クラス -->
+              <col style="width:12%;">  <!-- 番号 -->
+              <col style="width:54%;">  <!-- 氏名 -->
+              <col style="width:10%;">  <!-- □ -->
+            </colgroup>
+            <thead>
+              <tr>
+                <th>クラス</th>
+                <th>番号</th>
+                <th>氏名</th>
+                <th>□</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${
+                rows.length
+                ? rows.map(s=>{
+                    const clsLabel = formatClassLabel(s.class);
+                    const clsPt = fitFontPt(clsLabel, 7.4, 6, 6.2);
+                    const namePt = fitFontPt(s.name,   7.4, 7, 6.0);
+                    const clsStyle = clsPt ? `font-size:${clsPt}pt !important;` : "";
+                    const nameStyle = namePt ? `font-size:${namePt}pt !important;` : "";
+                    return `
+                      <tr>
+                        <td class="td-class" style="${clsStyle}">${esc(clsLabel)}</td>
+                        <td style="text-align:center; font-weight:800; white-space:nowrap;">${s.num}</td>
+                        <td class="td-name" style="${nameStyle}">${esc(s.name)}</td>
+                        <td style="text-align:center;">□</td>
+                      </tr>
+                    `;
+                  }).join("")
+                : `<tr><td colspan="4" style="text-align:center; padding:6mm; font-weight:900; color:#64748b;">乗車予定なし</td></tr>`
+              }
+            </tbody>
+          </table>
+        `;
+      }
+
+      page.appendChild(card);
+      container.appendChild(page);
     });
 
-    page.appendChild(grid);
-    container.appendChild(page);
     return;
   }
 
-  // 学級別：備考なし／幅最適化
+  // 学級別：備考なし／幅最適化（縦向き）
   let first = true;
   classes.forEach(cls=>{
     const kids = roster.filter(s=>s.class===cls).sort((a,b)=>a.num-b.num);
@@ -1353,7 +1396,6 @@ function renderPrint(){
 
     const compactClass = kids.length > 26 ? "compact" : "";
 
-    /* ★見出しが1枚目で孤立しないよう、学級別の1ページ目だけ上部に配置 */
     const headerHTML = first ? makeHeaderHTML() : "";
     first = false;
 
@@ -1384,7 +1426,7 @@ function renderPrint(){
             kids.map(s=>{
               const st=getDailyState(State.date, s.id);
               const info=APP.statuses.find(x=>x.key===st.status) || APP.statuses[0];
-              const namePt = fitFontPt(s.name, 9.0, 7, 7.2); // ★学級別も7文字想定で縮小
+              const namePt = fitFontPt(s.name, 9.0, 7, 7.2);
               const nameStyle = namePt ? `font-size:${namePt}pt !important;` : "";
               return `
                 <tr>
@@ -1412,7 +1454,6 @@ function layoutMonitor(){
   const header=document.querySelector("header");
   const headerH=header ? header.offsetHeight : 0;
 
-  /* ★縦を最大限：差し引きを減らす */
   const h = Math.max(360, window.innerHeight - headerH - 110);
   root.style.height = h + "px";
 }
@@ -1429,7 +1470,6 @@ function fitMonitor(){
   const h = content.scrollHeight;
   if(w<=0 || h<=0) return;
 
-  /* ★右側の空きを減らす：拡大も許可（上限は控えめに） */
   const scale = Math.min(maxW / w, maxH / h);
   const final = Math.min(scale, 1.9);
   content.style.transform = `scale(${final})`;
@@ -1849,7 +1889,6 @@ function bind(){
 /* 5秒ごとUIハートビート（差分同期はonSnapshotなのでread/writeは増やさない） */
 function startHeartbeat(){
   setInterval(()=>{
-    // 表示の安定化（特に大型モニタでの縮小/拡大フィット）
     if(State.tab==="monitor"){
       layoutMonitor();
       fitMonitor();
