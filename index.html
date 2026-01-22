@@ -1233,56 +1233,32 @@ function renderPrint(){
   `;
   container.appendChild(header);
 
- // バス別：A4横 / 3便を1枚に / 1便あたり最大44行（超えたら複数ページ）
-if(mode==="bus"){
-  const MAX_ROWS = 44;
-
-  const chunk = (arr, size) => {
-    const out = [];
-    for(let i=0;i<arr.length;i+=size) out.push(arr.slice(i,i+size));
-    return out.length ? out : [[]];
-  };
-
-  // バス別の乗車者リスト（全体の合計も保持）
-  const busData = APP.busTypes.map(busName=>{
-    const all = roster
-      .filter(s => getDailyState(State.date, s.id).status==="ride" && s.bus===busName)
-      .sort((a,b)=> a.class.localeCompare(b.class, undefined, {numeric:true}) || (a.num-b.num));
-    return {
-      busName,
-      total: all.length,
-      chunks: chunk(all, MAX_ROWS)
-    };
-  });
-
-  // もっともページ数が多いバスに合わせてページを作る
-  const pageCount = Math.max(...busData.map(b=>b.chunks.length), 1);
-
-  for(let pageIndex=0; pageIndex<pageCount; pageIndex++){
+  // バス別：3便を1枚にまとめる（3カラム）
+  if(mode==="bus"){
     const page=document.createElement("div");
-    page.className="print-page print-card rounded-3xl border border-slate-200 shadow-sm p-3 mb-4";
+    page.className="print-page print-card rounded-3xl border border-slate-200 shadow-sm p-4 mb-6";
 
     const grid=document.createElement("div");
     grid.className="print-bus-grid";
 
-    busData.forEach(({busName, total, chunks})=>{
-      const rows = chunks[pageIndex] || [];
-      const blanks = Math.max(0, MAX_ROWS - rows.length);
+    APP.busTypes.forEach(busName=>{
+      const rows = roster
+        .filter(s=>getDailyState(State.date, s.id).status==="ride" && s.bus===busName)
+        .sort((a,b)=> a.class.localeCompare(b.class, undefined, {numeric:true}) || (a.num-b.num));
 
       const card=document.createElement("div");
       card.className="print-bus-card";
 
-      const pageLabel = pageCount>1 ? `（${pageIndex+1}/${pageCount}）` : "";
-
+      const compactClass = rows.length > 18 ? "compact" : "";
       card.innerHTML = `
-        <div class="print-bus-title">■ ${busName}（${total}名）${pageLabel}</div>
-        <table>
+        <div class="print-bus-title">■ ${busName}（${rows.length}名）</div>
+        <table class="${compactClass}">
           <colgroup>
-            <col style="width:12%;">  <!-- クラス -->
-            <col style="width:10%;">  <!-- 番号 -->
-            <col style="width:34%;">  <!-- 氏名 -->
-            <col style="width:38%;">  <!-- バス停 -->
-            <col style="width:6%;">   <!-- 確認 -->
+            <col style="width:16%;">  <!-- クラス -->
+            <col style="width:12%;">  <!-- 番号 -->
+            <col style="width:40%;">  <!-- 氏名 -->
+            <col style="width:24%;">  <!-- バス停 -->
+            <col style="width:8%;">   <!-- 確認 -->
           </colgroup>
           <thead>
             <tr>
@@ -1295,26 +1271,17 @@ if(mode==="bus"){
           </thead>
           <tbody>
             ${
-              rows.map(s=>`
+              rows.length
+              ? rows.map(s=>`
                 <tr>
                   <td style="text-align:center; font-weight:900;">${s.class}</td>
-                  <td style="text-align:center; font-weight:900;">${s.num}</td>
+                  <td style="text-align:center; font-weight:800;">${s.num}</td>
                   <td class="td-name">${esc(s.name)}</td>
                   <td class="td-stop">${esc(s.stop)}</td>
                   <td style="text-align:center;">□</td>
                 </tr>
               `).join("")
-            }
-            ${
-              Array.from({length: blanks}).map(()=>`
-                <tr>
-                  <td>&nbsp;</td>
-                  <td>&nbsp;</td>
-                  <td class="td-name">&nbsp;</td>
-                  <td class="td-stop">&nbsp;</td>
-                  <td style="text-align:center;">□</td>
-                </tr>
-              `).join("")
+              : `<tr><td colspan="5" style="text-align:center; padding:6mm; font-weight:900; color:#64748b;">乗車予定なし</td></tr>`
             }
           </tbody>
         </table>
@@ -1324,11 +1291,8 @@ if(mode==="bus"){
 
     page.appendChild(grid);
     container.appendChild(page);
+    return;
   }
-
-  return;
-}
-
 
   // 学級別：備考なし／幅最適化
   classes.forEach(cls=>{
@@ -1473,9 +1437,9 @@ async function readCsvTextSmart(file){
   let text = tryDecode("utf-8") ?? "";
   if(hasUtf8Bom) text = text.replace(/^\uFEFF/, "");
 
-  if(text.includes("�")){
+  if(text.includes(" ")){
     const sjis = tryDecode("shift-jis");
-    if(sjis && !sjis.includes("�")) text = sjis;
+    if(sjis && !sjis.includes(" ")) text = sjis;
   }
 
   text = text.replace(/^\uFEFF/, "");
