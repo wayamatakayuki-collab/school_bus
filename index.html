@@ -861,22 +861,26 @@ function createCloudBackend(firebaseConfig, schoolId){
       const prev = { ...prevRaw, status: normalizeStatus(prevRaw.status) };
       const next = { ...prev, ...patch, status: normalizeStatus(patch.status ?? prev.status), ts: nowTs(), by:(DB.config.displayName || "—") };
 
-      const updateObj={};
-      updateObj[`states.${studentId}`]=next;
-      updateObj[`updatedBy`]=(DB.config.displayName || "—");
-      updateObj[`updatedAt`]=window.firebase.firestore.FieldValue.serverTimestamp();
-      await ref.set(updateObj, {merge:true});
+     const payload = {
+  states: { [String(studentId)]: next },
+  updatedBy: (DB.config.displayName || "—"),
+  updatedAt: window.firebase.firestore.FieldValue.serverTimestamp()
+};
+await ref.set(payload, { merge: true });
+
       return {prev,next};
     },
     updateClassDone: async(dateK, className, done)=>{
       await ensureAuthSignedIn();
       const docId=`daily_${dateK}`;
       const ref=pathBase().doc(docId);
-      const updateObj={};
-      updateObj[`classDone.${className}`]=!!done;
-      updateObj[`updatedBy`]=(DB.config.displayName || "—");
-      updateObj[`updatedAt`]=window.firebase.firestore.FieldValue.serverTimestamp();
-      await ref.set(updateObj, {merge:true});
+      const payload = {
+  classDone: { [String(className)]: !!done },
+  updatedBy: (DB.config.displayName || "—"),
+  updatedAt: window.firebase.firestore.FieldValue.serverTimestamp()
+};
+await ref.set(payload, { merge: true });
+
       return true;
     }
   };
