@@ -1182,7 +1182,7 @@ function renderMonitor(){
   const n = Math.max(1, showClasses.length);
   const gapPx = 8;
   const computed = Math.floor((rootW - gapPx*(n-1)) / n);
-  const cardW = Math.min(420, Math.max(210, computed)); /* ★上限/下限を広げて“氏名欄”を伸ばす */
+  const cardW = Math.min(360, Math.max(190, computed)); /* ★広いときは大きく、狭いときは縮む */
 
   showClasses.forEach(cls=>{
     const done = classDone[cls]===true;
@@ -1224,19 +1224,21 @@ function renderMonitor(){
           else if(st.status==="other") rowBg="bg-amber-50 border-amber-100";
 
           const showStatusMini = (st.status!=="none" && st.status!=="ride");
-          const statusMini = showStatusMini ? `<span class="shrink-0 px-1.5 py-0.5 rounded-lg text-[10px] font-black ${info.chip}">${info.short}</span>` : "";
+          const statusMini = showStatusMini ? `<span class="px-1.5 py-0.5 rounded-lg text-[10px] font-black ${info.chip}">${info.short}</span>` : "";
 
           return `
-            <!-- ★氏名欄を最大限横に：grid→flex、氏名をflex-1で伸ばす -->
-            <div class="flex items-center gap-1 px-1.5 py-1 rounded-2xl border ${rowBg}">
-              <div class="shrink-0 w-[30px] h-6 rounded-xl bg-slate-900 text-white grid place-items-center font-black text-[11px] leading-none">${s.num}</div>
+            <div class="grid grid-cols-[30px_1fr_48px] items-center gap-1 px-1.5 py-1 rounded-2xl border ${rowBg}">
+              <div class="w-[30px] h-6 rounded-xl bg-slate-900 text-white grid place-items-center font-black text-[11px] leading-none">${s.num}</div>
 
-              <div class="min-w-0 flex-1 flex items-center gap-2">
-                <div class="min-w-0 flex-1 font-black truncate" style="font-size:14px; line-height:1.15;">${s.name}</div>
+              <div class="min-w-0 flex items-center gap-2">
+                <!-- ★児童名を最大限大きく -->
+                <div class="min-w-0 font-black truncate" style="font-size:14px; line-height:1.15;">${s.name}</div>
                 ${statusMini}
               </div>
 
-              <span class="shrink-0 min-w-[34px] inline-flex justify-center px-1 py-0.5 rounded-lg text-[10px] font-black leading-none ${busClass(s.bus)}">${busShort(s.bus)}</span>
+              <div class="w-12 flex justify-end">
+                <span class="w-12 inline-flex justify-center px-0 py-0.5 rounded-lg text-[10px] font-black leading-none ${busClass(s.bus)}">${busShort(s.bus)}</span>
+              </div>
             </div>
           `;
         }).join("")}
@@ -1410,8 +1412,8 @@ function layoutMonitor(){
   const header=document.querySelector("header");
   const headerH=header ? header.offsetHeight : 0;
 
-  /* ★縦を最大限：差し引きを減らして縮小が起きにくく */
-  const h = Math.max(360, window.innerHeight - headerH - 70);
+  /* ★縦を最大限：差し引きを減らす */
+  const h = Math.max(360, window.innerHeight - headerH - 110);
   root.style.height = h + "px";
 }
 function fitMonitor(){
@@ -1429,7 +1431,7 @@ function fitMonitor(){
 
   /* ★右側の空きを減らす：拡大も許可（上限は控えめに） */
   const scale = Math.min(maxW / w, maxH / h);
-  const final = Math.min(scale, 2.2);
+  const final = Math.min(scale, 1.9);
   content.style.transform = `scale(${final})`;
 }
 
@@ -1739,3 +1741,130 @@ function bind(){
 
   $("#monitor-filter").addEventListener("change",(e)=>{ State.monitorFilter=e.target.value; renderMonitor(); layoutMonitor(); fitMonitor(); });
   $("#btn-monitor-refresh").onclick=()=>{ renderMonitor(); layoutMonitor(); fitMonitor(); showToast("更新しました"); };
+
+  $("#print-mode").addEventListener("change",(e)=>{ State.printMode=e.target.value; renderPrint(); });
+
+  $("#btn-fullscreen").onclick=async()=>{
+    try{
+      if(!document.fullscreenElement){
+        await document.documentElement.requestFullscreen();
+        showToast("全画面にしました");
+      }else{
+        await document.exitFullscreen();
+        showToast("全画面を解除しました");
+      }
+      if(State.tab==="monitor"){ layoutMonitor(); fitMonitor(); }
+    }catch(e){
+      showToast("全画面にできませんでした");
+    }
+  };
+
+  $("#modal").addEventListener("click",(e)=>{
+    if(e.target && e.target.classList.contains("modal-backdrop")) UI.closeModal();
+  });
+
+  $("#btn-save-config").onclick=async()=>{
+    DB.config.displayName=$("#cfg-display-name").value.trim();
+    DB.config.schoolId=$("#cfg-school-id").value.trim() || "default";
+    DB.config.firebaseJSON=$("#cfg-firebase-json").value.trim();
+    saveDB();
+    showToast("設定を保存しました");
+    await applyBackend();
+    UI.switchTab("settings");
+  };
+
+  $("#btn-test-cloud").onclick=async()=>{
+    try{
+      const json=$("#cfg-firebase-json").value.trim();
+      const cfg=JSON.parse(json||"{}");
+      if(!cfg.projectId) throw new Error("projectId がありません");
+      const b=createCloudBackend(cfg, $("#cfg-school-id").value.trim() || "default");
+      await b.init();
+      $("#cfg-cloud-status").textContent="接続OK（保存して有効化してください）";
+      $("#cfg-cloud-status").className="px-3 py-2 rounded-2xl border text-xs font-black bg-emerald-50 border-emerald-100 text-emerald-700";
+      showToast("接続テストOK");
+    }catch(e){
+      $("#cfg-cloud-status").textContent="接続NG（JSON/ネットワーク/Auth確認）";
+      $("#cfg-cloud-status").className="px-3 py-2 rounded-2xl border text-xs font-black bg-rose-50 border-rose-100 text-rose-700";
+      showToast("接続テスト失敗");
+      console.warn(e);
+    }
+  };
+
+  $("#btn-export-json").onclick=exportJSON;
+  $("#btn-export-csv").onclick=exportCSV;
+
+  $("#file-import-csv").addEventListener("change", async(e)=>{
+    const f=e.target.files?.[0];
+    if(!f) return;
+    await importCSV(f);
+    e.target.value="";
+  });
+
+  $("#btn-factory-reset").onclick=()=>{
+    if(!confirm("全データ（名簿・日々の状態・設定）を初期化しますか？")) return;
+    localStorage.removeItem(APP.storageKey);
+    location.reload();
+  };
+
+  $("#student-form").addEventListener("submit", async(e)=>{
+    e.preventDefault();
+    const editId=$("#edit-id").value;
+
+    const item={
+      id: editId ? Number(editId) : (Date.now()+Math.floor(Math.random()*10000)),
+      class: $("#input-class").value.trim(),
+      num: Number($("#input-num").value) || 0,
+      name: $("#input-name").value.trim(),
+      bus: $("#input-bus").value.trim(),
+      stop: $("#input-stop").value.trim()
+    };
+    if(!item.class || !item.num || !item.name){ showToast("入力を確認してください"); return; }
+
+    let roster=State.roster.slice();
+    if(editId){
+      const idx=roster.findIndex(s=>String(s.id)===String(editId));
+      if(idx>=0) roster[idx]=item;
+    }else{
+      roster.push(item);
+    }
+
+    await State.backend.saveRoster(roster);
+    Settings.cancelEdit();
+    showToast(editId ? "保存しました" : "追加しました");
+    renderAll();
+    $("#input-num").focus();
+  });
+
+  $("#btn-cancel-edit").onclick=()=>Settings.cancelEdit();
+
+  window.addEventListener("resize", ()=>{
+    if(State.tab==="monitor"){
+      layoutMonitor();
+      fitMonitor();
+    }
+  });
+}
+
+/* 5秒ごとUIハートビート（差分同期はonSnapshotなのでread/writeは増やさない） */
+function startHeartbeat(){
+  setInterval(()=>{
+    // 表示の安定化（特に大型モニタでの縮小/拡大フィット）
+    if(State.tab==="monitor"){
+      layoutMonitor();
+      fitMonitor();
+    }
+  }, 5000);
+}
+
+(async function init(){
+  State.dailyDoc = (DB.daily?.[State.date]) || ensureDaily(State.date);
+  State.backend = createLocalBackend();
+  await applyBackend();
+  bind();
+  renderAll();
+  startHeartbeat();
+})();
+</script>
+</body>
+</html>
