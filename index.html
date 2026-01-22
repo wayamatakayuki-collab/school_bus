@@ -24,11 +24,8 @@
        - ★見出しが1枚目だけで孤立しないよう、見出しをページ内に配置（renderPrint側で対応）
        - ★クラス（○年○組）が1行で入るよう nowrap + 幅調整
        - ★氏名は7文字想定：長い名前は自動縮小（renderPrint側で対応）
-       - ★チェック欄が別ページに飛びにくいよう box-sizing を統一
     ========================= */
     @media print{
-      *, *::before, *::after{ box-sizing:border-box !important; } /* ★追加 */
-
       .no-print{ display:none !important; }
       body{ background:white !important; margin:0; padding:0; }
       .print-shell{ max-width:100% !important; width:100% !important; padding:0 !important; margin:0 !important; }
@@ -160,7 +157,7 @@
 
 <body class="bg-slate-50 text-slate-800 min-h-screen">
   <header class="no-print sticky top-0 z-40 bg-white/75 backdrop-blur-md border-b border-slate-200">
-    <div class="max-w-[1900px] mx-auto px-4 py-3 flex flex-wrap items-center gap-3"><!-- ★1400→1900 -->
+    <div class="max-w-[1400px] mx-auto px-4 py-3 flex flex-wrap items-center gap-3">
       <div class="flex items-center gap-2 mr-auto">
         <div class="w-10 h-10 rounded-2xl bg-blue-600 shadow-lg shadow-blue-100 grid place-items-center">
           <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -198,7 +195,7 @@
     </div>
   </header>
 
-  <main id="main-shell" class="print-shell max-w-[1900px] mx-auto px-4 py-6 space-y-6"><!-- ★1400→1900 -->
+  <main id="main-shell" class="print-shell max-w-[1400px] mx-auto px-4 py-6 space-y-6">
     <!-- Overview -->
     <section id="section-overview" class="no-print grid grid-cols-1 lg:grid-cols-2 gap-4">
       <div class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm">
@@ -285,7 +282,7 @@
       <!-- ★横幅を最大限：pを削って、mainもmonitor時はw-screen化（JSで切替） -->
       <div id="monitor-fit-root" class="no-print bg-white border border-slate-200 rounded-2xl p-0 shadow-sm overflow-hidden">
         <div id="monitor-fit" class="origin-top-left">
-          <div id="monitor-grid" class="flex flex-row flex-nowrap gap-2 w-full"></div><!-- ★w-full -->
+          <div id="monitor-grid" class="flex flex-row flex-nowrap gap-2"></div>
         </div>
       </div>
 
@@ -585,25 +582,6 @@ function busClass(busName){
 }
 function busShort(busName){ return String(busName||"").replace("バス","").slice(0,2); }
 
-/* ★追加：モニタで氏名の自動縮小（切れにくく） */
-function charLenNoSpace(str){
-  return Array.from(String(str||"").replace(/\s+/g,"")).length;
-}
-function monitorNameFontPx(name){
-  const n = charLenNoSpace(name);
-  if(n>=11) return 11;
-  if(n>=9)  return 12;
-  return 13;
-}
-/* ★追加：印刷（バス別）の氏名を7文字想定で自動縮小 */
-function printNamePt(name){
-  const n = charLenNoSpace(name);
-  if(n<=7) return 7.4;
-  if(n===8) return 7.0;
-  if(n===9) return 6.6;
-  return 6.2;
-}
-
 /* ★印刷：クラス表示（1-1 → 1年1組） */
 function formatClassLabel(cls){
   const raw = String(cls||"").trim();
@@ -900,7 +878,7 @@ const UI = {
       if(tab==="monitor"){
         main.className = "print-shell w-screen max-w-none mx-0 px-2 py-3 space-y-3";
       }else{
-        main.className = "print-shell max-w-[1900px] mx-auto px-4 py-6 space-y-6"; /* ★1400→1900 */
+        main.className = "print-shell max-w-[1400px] mx-auto px-4 py-6 space-y-6";
       }
     }
 
@@ -1172,10 +1150,10 @@ function renderCheck(){
   }
 }
 
-/* ★差し替え：右側の空きが出ない（横幅いっぱい）＋氏名は自動縮小 */
 function renderMonitor(){
   const { roster, classes, classDone, busCounts, rideCount, doneCount } = derived();
 
+  /* ★スリムな上部バー（縦幅を削減） */
   $("#monitor-summary").innerHTML = `
     <span class="px-2 py-1 rounded-xl bg-slate-900 text-white text-[11px] font-black">全校モニタ（下校）</span>
     <span class="text-sm font-black text-slate-900">${jpDateLabel(State.date)}</span>
@@ -1187,6 +1165,13 @@ function renderMonitor(){
   `;
 
   const filter = State.monitorFilter;
+  const grid = $("#monitor-grid");
+  grid.innerHTML="";
+
+  /* ★横幅の空きを減らす：表示対象数に合わせてカード幅を可変（ただし縮小fitが効く） */
+  const rootEl = $("#monitor-fit-root");
+  const rootW = rootEl ? rootEl.clientWidth : 1200;
+
   const showClasses = classes.filter(cls=>{
     const done = classDone[cls]===true;
     if(filter==="pending" && done) return false;
@@ -1194,12 +1179,14 @@ function renderMonitor(){
     return true;
   });
 
-  const grid = $("#monitor-grid");
-  grid.innerHTML = "";
-  grid.className = "flex flex-row flex-nowrap gap-2 w-full"; /* ★横幅いっぱい */
+  const n = Math.max(1, showClasses.length);
+  const gapPx = 8;
+  const computed = Math.floor((rootW - gapPx*(n-1)) / n);
+  const cardW = Math.min(420, Math.max(210, computed)); /* ★上限/下限を広げて“氏名欄”を伸ばす */
 
   showClasses.forEach(cls=>{
     const done = classDone[cls]===true;
+
     const kids = roster.filter(s=>s.class===cls).sort((a,b)=>a.num-b.num);
     const riders = kids.filter(s=>getDailyState(State.date, s.id).status==="ride");
 
@@ -1209,12 +1196,13 @@ function renderMonitor(){
     }).join("");
 
     const card = document.createElement("div");
-    card.className = "flex-1 min-w-[170px] bg-white border border-slate-200 rounded-3xl p-2 shadow-sm"; /* ★均等に伸びる */
+    card.className = `shrink-0 bg-white border border-slate-200 rounded-3xl p-2 shadow-sm`;
+    card.style.width = cardW + "px";
 
     card.innerHTML = `
       <div class="flex items-center justify-between gap-2 border-b border-slate-100 pb-1">
         <div class="flex items-center gap-2">
-          <div class="text-lg font-black italic tracking-tight">${cls}</div>
+          <div class="text-xl font-black italic tracking-tight">${cls}</div>
           <span class="px-2 py-0.5 rounded-xl bg-slate-100 border border-slate-200 text-[11px] font-black">${riders.length}名</span>
         </div>
         <div class="text-[11px] font-black ${done ? "text-emerald-700" : "text-amber-700"}">
@@ -1236,24 +1224,19 @@ function renderMonitor(){
           else if(st.status==="other") rowBg="bg-amber-50 border-amber-100";
 
           const showStatusMini = (st.status!=="none" && st.status!=="ride");
-          const statusMini = showStatusMini ? `<span class="px-1.5 py-0.5 rounded-lg text-[10px] font-black ${info.chip}">${info.short}</span>` : "";
-
-          const namePx = monitorNameFontPx(s.name);
+          const statusMini = showStatusMini ? `<span class="shrink-0 px-1.5 py-0.5 rounded-lg text-[10px] font-black ${info.chip}">${info.short}</span>` : "";
 
           return `
-            <div class="grid grid-cols-[26px_1fr_44px] items-center gap-1 px-1.5 py-1 rounded-2xl border ${rowBg}">
-              <div class="w-6 h-6 rounded-xl bg-slate-900 text-white grid place-items-center font-black text-[11px] leading-none">${s.num}</div>
+            <!-- ★氏名欄を最大限横に：grid→flex、氏名をflex-1で伸ばす -->
+            <div class="flex items-center gap-1 px-1.5 py-1 rounded-2xl border ${rowBg}">
+              <div class="shrink-0 w-[30px] h-6 rounded-xl bg-slate-900 text-white grid place-items-center font-black text-[11px] leading-none">${s.num}</div>
 
-              <div class="min-w-0 flex items-center gap-1">
-                <div class="min-w-0 font-black truncate" title="${esc(s.name)}" style="font-size:${namePx}px; line-height:1.05;">
-                  ${esc(s.name)}
-                </div>
+              <div class="min-w-0 flex-1 flex items-center gap-2">
+                <div class="min-w-0 flex-1 font-black truncate" style="font-size:14px; line-height:1.15;">${s.name}</div>
                 ${statusMini}
               </div>
 
-              <div class="w-11 flex justify-end">
-                <span class="w-11 inline-flex justify-center px-0 py-0.5 rounded-lg text-[10px] font-black leading-none ${busClass(s.bus)}">${busShort(s.bus)}</span>
-              </div>
+              <span class="shrink-0 min-w-[34px] inline-flex justify-center px-1 py-0.5 rounded-lg text-[10px] font-black leading-none ${busClass(s.bus)}">${busShort(s.bus)}</span>
             </div>
           `;
         }).join("")}
@@ -1264,7 +1247,7 @@ function renderMonitor(){
 
   if(!grid.children.length){
     grid.innerHTML = `
-      <div class="w-full bg-white border border-slate-200 rounded-3xl p-10 text-center text-slate-500">
+      <div class="bg-white border border-slate-200 rounded-3xl p-10 text-center text-slate-500">
         <div class="text-xl font-black">表示対象がありません</div>
         <div class="text-xs font-bold mt-1">フィルタ設定を確認してください。</div>
       </div>
@@ -1312,10 +1295,10 @@ function renderPrint(){
         <div class="print-bus-title">■ ${busName}（${rows.length}名）</div>
         <table class="${compactClass}">
           <colgroup>
-            <col style="width:18%;">  <!-- クラス -->
-            <col style="width:10%;">  <!-- 番号 -->
-            <col style="width:42%;">  <!-- ★氏名（40→42） -->
-            <col style="width:22%;">  <!-- ★バス停（24→22） -->
+            <col style="width:18%;">  <!-- ★クラス（少し広げる） -->
+            <col style="width:10%;">  <!-- ★番号 -->
+            <col style="width:40%;">  <!-- 氏名 -->
+            <col style="width:24%;">  <!-- バス停 -->
             <col style="width:8%;">   <!-- 確認 -->
           </colgroup>
           <thead>
@@ -1332,9 +1315,10 @@ function renderPrint(){
               rows.length
               ? rows.map(s=>{
                   const clsLabel = formatClassLabel(s.class);
-                  const clsPt = fitFontPt(clsLabel, 7.4, 6, 6.2);     // クラスは6文字想定
+                  const clsPt = fitFontPt(clsLabel, 7.4, 6, 6.2);     // ★クラスは6文字想定
+                  const namePt = fitFontPt(s.name,   7.4, 7, 6.0);     // ★氏名は7文字想定
                   const clsStyle = clsPt ? `font-size:${clsPt}pt !important;` : "";
-                  const nameStyle = `font-size:${printNamePt(s.name)}pt !important;`; /* ★差し替え：7文字想定で自動縮小 */
+                  const nameStyle = namePt ? `font-size:${namePt}pt !important;` : "";
                   return `
                     <tr>
                       <td class="td-class" style="${clsStyle}">${esc(clsLabel)}</td>
@@ -1398,7 +1382,7 @@ function renderPrint(){
             kids.map(s=>{
               const st=getDailyState(State.date, s.id);
               const info=APP.statuses.find(x=>x.key===st.status) || APP.statuses[0];
-              const namePt = fitFontPt(s.name, 9.0, 7, 7.2); // 学級別は現状維持
+              const namePt = fitFontPt(s.name, 9.0, 7, 7.2); // ★学級別も7文字想定で縮小
               const nameStyle = namePt ? `font-size:${namePt}pt !important;` : "";
               return `
                 <tr>
@@ -1420,12 +1404,14 @@ function renderPrint(){
 }
 
 /* ---- Monitor fit ---- */
-/* ★差し替え：モニタ領域の縦を「残り全部使う」 */
 function layoutMonitor(){
   const root=$("#monitor-fit-root");
   if(!root) return;
-  const rect = root.getBoundingClientRect();
-  const h = Math.max(360, Math.floor(window.innerHeight - rect.top - 12));
+  const header=document.querySelector("header");
+  const headerH=header ? header.offsetHeight : 0;
+
+  /* ★縦を最大限：差し引きを減らして縮小が起きにくく */
+  const h = Math.max(360, window.innerHeight - headerH - 70);
   root.style.height = h + "px";
 }
 function fitMonitor(){
@@ -1443,7 +1429,7 @@ function fitMonitor(){
 
   /* ★右側の空きを減らす：拡大も許可（上限は控えめに） */
   const scale = Math.min(maxW / w, maxH / h);
-  const final = Math.min(scale, 1.9);
+  const final = Math.min(scale, 2.2);
   content.style.transform = `scale(${final})`;
 }
 
@@ -1753,130 +1739,3 @@ function bind(){
 
   $("#monitor-filter").addEventListener("change",(e)=>{ State.monitorFilter=e.target.value; renderMonitor(); layoutMonitor(); fitMonitor(); });
   $("#btn-monitor-refresh").onclick=()=>{ renderMonitor(); layoutMonitor(); fitMonitor(); showToast("更新しました"); };
-
-  $("#print-mode").addEventListener("change",(e)=>{ State.printMode=e.target.value; renderPrint(); });
-
-  $("#btn-fullscreen").onclick=async()=>{
-    try{
-      if(!document.fullscreenElement){
-        await document.documentElement.requestFullscreen();
-        showToast("全画面にしました");
-      }else{
-        await document.exitFullscreen();
-        showToast("全画面を解除しました");
-      }
-      if(State.tab==="monitor"){ layoutMonitor(); fitMonitor(); }
-    }catch(e){
-      showToast("全画面にできませんでした");
-    }
-  };
-
-  $("#modal").addEventListener("click",(e)=>{
-    if(e.target && e.target.classList.contains("modal-backdrop")) UI.closeModal();
-  });
-
-  $("#btn-save-config").onclick=async()=>{
-    DB.config.displayName=$("#cfg-display-name").value.trim();
-    DB.config.schoolId=$("#cfg-school-id").value.trim() || "default";
-    DB.config.firebaseJSON=$("#cfg-firebase-json").value.trim();
-    saveDB();
-    showToast("設定を保存しました");
-    await applyBackend();
-    UI.switchTab("settings");
-  };
-
-  $("#btn-test-cloud").onclick=async()=>{
-    try{
-      const json=$("#cfg-firebase-json").value.trim();
-      const cfg=JSON.parse(json||"{}");
-      if(!cfg.projectId) throw new Error("projectId がありません");
-      const b=createCloudBackend(cfg, $("#cfg-school-id").value.trim() || "default");
-      await b.init();
-      $("#cfg-cloud-status").textContent="接続OK（保存して有効化してください）";
-      $("#cfg-cloud-status").className="px-3 py-2 rounded-2xl border text-xs font-black bg-emerald-50 border-emerald-100 text-emerald-700";
-      showToast("接続テストOK");
-    }catch(e){
-      $("#cfg-cloud-status").textContent="接続NG（JSON/ネットワーク/Auth確認）";
-      $("#cfg-cloud-status").className="px-3 py-2 rounded-2xl border text-xs font-black bg-rose-50 border-rose-100 text-rose-700";
-      showToast("接続テスト失敗");
-      console.warn(e);
-    }
-  };
-
-  $("#btn-export-json").onclick=exportJSON;
-  $("#btn-export-csv").onclick=exportCSV;
-
-  $("#file-import-csv").addEventListener("change", async(e)=>{
-    const f=e.target.files?.[0];
-    if(!f) return;
-    await importCSV(f);
-    e.target.value="";
-  });
-
-  $("#btn-factory-reset").onclick=()=>{
-    if(!confirm("全データ（名簿・日々の状態・設定）を初期化しますか？")) return;
-    localStorage.removeItem(APP.storageKey);
-    location.reload();
-  };
-
-  $("#student-form").addEventListener("submit", async(e)=>{
-    e.preventDefault();
-    const editId=$("#edit-id").value;
-
-    const item={
-      id: editId ? Number(editId) : (Date.now()+Math.floor(Math.random()*10000)),
-      class: $("#input-class").value.trim(),
-      num: Number($("#input-num").value) || 0,
-      name: $("#input-name").value.trim(),
-      bus: $("#input-bus").value.trim(),
-      stop: $("#input-stop").value.trim()
-    };
-    if(!item.class || !item.num || !item.name){ showToast("入力を確認してください"); return; }
-
-    let roster=State.roster.slice();
-    if(editId){
-      const idx=roster.findIndex(s=>String(s.id)===String(editId));
-      if(idx>=0) roster[idx]=item;
-    }else{
-      roster.push(item);
-    }
-
-    await State.backend.saveRoster(roster);
-    Settings.cancelEdit();
-    showToast(editId ? "保存しました" : "追加しました");
-    renderAll();
-    $("#input-num").focus();
-  });
-
-  $("#btn-cancel-edit").onclick=()=>Settings.cancelEdit();
-
-  window.addEventListener("resize", ()=>{
-    if(State.tab==="monitor"){
-      layoutMonitor();
-      fitMonitor();
-    }
-  });
-}
-
-/* 5秒ごとUIハートビート（差分同期はonSnapshotなのでread/writeは増やさない） */
-function startHeartbeat(){
-  setInterval(()=>{
-    // 表示の安定化（特に大型モニタでの縮小/拡大フィット）
-    if(State.tab==="monitor"){
-      layoutMonitor();
-      fitMonitor();
-    }
-  }, 5000);
-}
-
-(async function init(){
-  State.dailyDoc = (DB.daily?.[State.date]) || ensureDaily(State.date);
-  State.backend = createLocalBackend();
-  await applyBackend();
-  bind();
-  renderAll();
-  startHeartbeat();
-})();
-</script>
-</body>
-</html>
