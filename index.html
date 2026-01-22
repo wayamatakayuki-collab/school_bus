@@ -40,12 +40,12 @@
     }
 
     /* Status chips */
-    .chip{ display:inline-flex; align-items:center; gap:.35rem; padding:.18rem .5rem; border-radius:.65rem; font-weight:900; font-size:11px; border:1px solid transparent; white-space:nowrap; }
-    .chip-none{ background:#f8fafc; color:#64748b; border-color:#e2e8f0; }     /* 未チェック（デフォルト） */
-    .chip-ride{ background:#dbeafe; color:#1e40af; border-color:#bfdbfe; }     /* 乗車 */
-    .chip-absent{ background:#f1f5f9; color:#475569; border-color:#e2e8f0; }   /* 欠席 */
-    .chip-pickup{ background:#dcfce7; color:#14532d; border-color:#bbf7d0; }   /* 送迎 */
-    .chip-other{ background:#fef3c7; color:#78350f; border-color:#fde68a; }    /* その他 */
+    .chip{ display:inline-flex; align-items:center; gap:.35rem; padding:.18rem .5rem; border-radius:.65rem; font-weight:900; font-size:11px; border:1px solid transparent; white-space:nowrap; line-height:1; }
+    .chip-none{ background:#f8fafc; color:#64748b; border-color:#e2e8f0; }
+    .chip-ride{ background:#dbeafe; color:#1e40af; border-color:#bfdbfe; }
+    .chip-absent{ background:#f1f5f9; color:#475569; border-color:#e2e8f0; }
+    .chip-pickup{ background:#dcfce7; color:#14532d; border-color:#bbf7d0; }
+    .chip-other{ background:#fef3c7; color:#78350f; border-color:#fde68a; }
 
     /* Bus badges */
     .bus-u{ background-color:#dbeafe; color:#1e40af; border:1px solid #bfdbfe; } /* 上瀑 */
@@ -104,7 +104,8 @@
   </header>
 
   <main class="print-shell max-w-[1400px] mx-auto px-4 py-6 space-y-6">
-    <section id="section-overview" class="no-print grid grid-cols-1 lg:grid-cols-3 gap-4">
+    <!-- Overview（★最終更新/更新者の枠は削除：2カードのみ） -->
+    <section id="section-overview" class="no-print grid grid-cols-1 lg:grid-cols-2 gap-4">
       <div class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm">
         <div class="flex items-start justify-between gap-3">
           <div>
@@ -135,25 +136,6 @@
           </div>
         </div>
         <div class="mt-4 flex flex-wrap gap-2" id="bus-summary-chips"></div>
-      </div>
-
-      <div class="bg-slate-900 text-white rounded-3xl p-5 shadow-2xl">
-        <div class="flex items-start justify-between gap-3">
-          <div>
-            <div class="text-[11px] font-black text-white/50 tracking-widest uppercase">最終更新</div>
-            <div class="text-2xl font-black tracking-tight" id="last-updated">--</div>
-            <div class="text-xs font-bold text-white/60 mt-1" id="updated-by">--</div>
-          </div>
-          <div class="w-12 h-12 rounded-2xl bg-white/10 border border-white/10 grid place-items-center">
-            <svg class="w-7 h-7 text-white/70" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3M21 12a9 9 0 1 1-9-9 9 9 0 0 1 9 9Z"/>
-            </svg>
-          </div>
-        </div>
-        <div class="mt-4 flex flex-wrap gap-2">
-          <button id="btn-undo" class="tap px-4 py-2 rounded-2xl bg-white/10 border border-white/10 text-xs font-black hover:bg-white/15">↩ 直前を戻す</button>
-          <button id="btn-reset-daily" class="tap px-4 py-2 rounded-2xl bg-red-500/20 border border-red-500/20 text-xs font-black hover:bg-red-500/30">今日の状態をクリア</button>
-        </div>
       </div>
     </section>
 
@@ -439,15 +421,15 @@
 
 <script>
 /* =========================
-   Bus Checker (下校のみ) v12
-   - 初期状態：未チェック（基本は乗車しない）
-   - 乗車：カード全体に色
-   - モニタ：1クラス最大20人想定で余白・枠を縮小（ノースクロール＆自動フィット維持）
+   Bus Checker (下校のみ) v12.1
+   - 担任カード：高さ・要素配置を統一（内容が必ず収まる）
+   - モニタ：右側バスを固定幅でズレ防止 / 「乗」表示削除（乗車は行背景で判別）
+   - 最終更新/更新者の枠と機能：削除
 ========================= */
 
 const APP = {
-  version: "v12",
-  storageKey: "busCheckerV12",
+  version: "v12.1",
+  storageKey: "busCheckerV121",
   busTypes: ["上瀑バス","総元バス","田代バス"],
   statuses: [
     { key:"none",   label:"未チェック", chip:"chip-none",   short:"未" },
@@ -504,7 +486,6 @@ function showToast(msg){
 }
 
 function normalizeStatus(k){
-  // 旧データ互換：off/unknownは未チェック扱い
   if(!k) return "none";
   if(k==="off") return "none";
   const ok = APP.statuses.some(x=>x.key===k);
@@ -535,37 +516,7 @@ function loadDB(){
       obj.daily ||= {};
       return obj;
     }
-    // 旧版(v11/v10)から移行（登校は破棄。状態は残しつつoff→noneに読み替え）
-    const raw11 = localStorage.getItem("busCheckerV11");
-    const raw10 = localStorage.getItem("busCheckerV10");
-    const base = defaultDB();
-    const src = raw11 ? JSON.parse(raw11) : (raw10 ? JSON.parse(raw10) : null);
-    if(src){
-      base.config = src.config || base.config;
-      base.roster = src.roster || base.roster;
-
-      base.daily = {};
-      if(src.daily && typeof src.daily==="object"){
-        for(const dk of Object.keys(src.daily)){
-          const v = src.daily[dk];
-          // v10: {AM:{}, PM:{}} -> PM優先
-          const daily = (v && (v.PM || v.AM)) ? (v.PM || v.AM) : v;
-          if(daily && typeof daily==="object"){
-            // states内のstatusを正規化
-            const states = daily.states || {};
-            const fixedStates = {};
-            for(const sid of Object.keys(states)){
-              const st = states[sid] || {};
-              fixedStates[sid] = { ...st, status: normalizeStatus(st.status) };
-            }
-            base.daily[dk] = { ...daily, states: fixedStates };
-          }
-        }
-      }
-      localStorage.setItem(APP.storageKey, JSON.stringify(base));
-      return base;
-    }
-    return base;
+    return defaultDB();
   }catch(e){
     console.warn(e);
     return defaultDB();
@@ -605,8 +556,7 @@ function getDailyState(dateK, studentId){
   if(st){
     return { ...st, status: normalizeStatus(st.status) };
   }
-  // ★初期は未チェック（基本は乗車しない）
-  return { status:"none", note:"", ts:0, by:"" };
+  return { status:"none", note:"", ts:0, by:"" }; // 初期＝未チェック
 }
 function setDailyStateLocal(dateK, studentId, patch){
   const daily = ensureDaily(dateK);
@@ -627,11 +577,6 @@ function setClassDoneLocal(dateK, className, done){
   daily.updatedBy = DB.config.displayName || "—";
   saveDB();
 }
-function resetDailyLocal(dateK){
-  DB.daily[dateK] = { states:{}, classDone:{}, updatedAt: nowTs(), updatedBy:(DB.config.displayName || "—") };
-  saveDB();
-}
-
 function sortClassKey(a,b){ return a.localeCompare(b, undefined, {numeric:true, sensitivity:"base"}); }
 
 function derived(){
@@ -667,7 +612,6 @@ function createLocalBackend(){
     subscribeDaily:(dateK, cb)=>{ dailyListeners.push(cb); cb(ensureDaily(dateK)); return ()=> dailyListeners = dailyListeners.filter(x=>x!==cb); },
     updateStudent: async(dateK, studentId, patch)=>{ const r=setDailyStateLocal(dateK, studentId, patch); dailyListeners.forEach(cb=>cb(ensureDaily(dateK))); return r; },
     updateClassDone: async(dateK, className, done)=>{ setClassDoneLocal(dateK, className, done); dailyListeners.forEach(cb=>cb(ensureDaily(dateK))); return true; },
-    resetDaily: async(dateK)=>{ resetDailyLocal(dateK); dailyListeners.forEach(cb=>cb(ensureDaily(dateK))); return true; }
   };
 }
 
@@ -707,7 +651,6 @@ function createCloudBackend(firebaseConfig, schoolId){
       unsubDaily = pathBase().doc(docId).onSnapshot((snap)=>{
         const data=snap.data()||{};
         const states = data.states || {};
-        // status正規化
         for(const sid of Object.keys(states)){
           if(states[sid] && states[sid].status) states[sid].status = normalizeStatus(states[sid].status);
         }
@@ -744,16 +687,6 @@ function createCloudBackend(firebaseConfig, schoolId){
       updateObj[`updatedBy`]=(DB.config.displayName || "—");
       updateObj[`updatedAt`]=window.firebase.firestore.FieldValue.serverTimestamp();
       await ref.set(updateObj, {merge:true});
-      return true;
-    },
-    resetDaily: async(dateK)=>{
-      const docId=`daily_${dateK}`;
-      await pathBase().doc(docId).set({
-        states:{},
-        classDone:{},
-        updatedBy:(DB.config.displayName || "—"),
-        updatedAt: window.firebase.firestore.FieldValue.serverTimestamp()
-      }, {merge:false});
       return true;
     }
   };
@@ -838,7 +771,6 @@ const UI = {
 const Actions = {
   async quickToggle(studentId){
     const st = getDailyState(State.date, studentId);
-    // ★未チェック ⇔ 乗車（基本運用）
     const nextStatus = (st.status === "ride") ? "none" : "ride";
     return await Actions.setStatus(studentId, nextStatus, st.note || "");
   },
@@ -851,10 +783,6 @@ const Actions = {
       showToast("この学級は確認完了でロック中です（ロック解除して編集）");
       return;
     }
-
-    const prev = getDailyState(State.date, studentId);
-    State.undoStack.push({ type:"student", studentId, prev:{...prev}, date:State.date });
-    if(State.undoStack.length>30) State.undoStack.shift();
 
     await State.backend.updateStudent(State.date, studentId, { status: normalizeStatus(statusKey), note: note || "" });
     await State.backend.updateClassDone(State.date, s.class, false);
@@ -895,25 +823,6 @@ const Actions = {
     }
     showToast("一括反映しました");
     renderCheck();
-  },
-
-  async undo(){
-    const item = State.undoStack.pop();
-    if(!item){ showToast("戻す操作がありません"); return; }
-    if(item.type==="student"){
-      if(item.date !== State.date){ showToast("別日の操作は戻せません（画面の日付を合わせてください）"); return; }
-      await State.backend.updateStudent(State.date, item.studentId, { ...item.prev, status: normalizeStatus(item.prev.status) });
-      const s = State.roster.find(x=>String(x.id)===String(item.studentId));
-      if(s) await State.backend.updateClassDone(State.date, s.class, false);
-      showToast("直前の操作を戻しました");
-    }
-  },
-
-  async resetDaily(){
-    if(!confirm("この日付の『日々の状態』をすべてクリアしますか？（名簿は残ります）")) return;
-    await State.backend.resetDaily(State.date);
-    State.undoStack=[];
-    showToast("日々の状態をクリアしました（全員：未チェックに戻りました）");
   }
 };
 
@@ -921,7 +830,7 @@ const Actions = {
    Rendering
 ------------------------- */
 function renderOverview(){
-  const { classes, classDone, rideCount, busCounts, daily, doneCount } = derived();
+  const { classes, classDone, rideCount, busCounts, doneCount } = derived();
 
   $("#today-label").textContent = jpDateLabel(State.date);
   $("#school-ride-count").textContent = `${rideCount}名`;
@@ -945,9 +854,6 @@ function renderOverview(){
       </div>
     `;
   }).join("");
-
-  $("#last-updated").textContent = daily.updatedAt ? fmtTime(daily.updatedAt) : "--";
-  $("#updated-by").textContent = daily.updatedBy ? `更新者：${daily.updatedBy}` : "更新者：--";
 
   if(DB.config.mode==="cloud" && State.cloudReady){
     $("#cloud-pill").className="px-3 py-2 rounded-2xl border text-xs font-black bg-blue-50 border-blue-100 text-blue-700";
@@ -977,7 +883,7 @@ function renderCheck(){
 
   const classKids = roster.filter(s=>s.class===selected).sort((a,b)=>a.num-b.num);
   $("#class-bus-summary").innerHTML = APP.busTypes.map(b=>{
-    const cnt = classKids.filter(s=>s.bus===b && getDailyState(State.date, s.id).status==="ride").length;
+    const cnt = classKids.filter(s => s.bus===b && getDailyState(State.date, s.id).status==="ride").length;
     if(cnt<=0) return "";
     return `<span class="px-2 py-1 rounded-xl text-[11px] font-black ${busClass(b)}">${esc(busShort(b))} ${cnt}</span>`;
   }).join("");
@@ -996,7 +902,7 @@ function renderCheck(){
     const info = APP.statuses.find(x=>x.key===st.status) || APP.statuses[0];
     const locked = State.classLock;
 
-    // ★カード全体の色：乗車はフルカラー
+    // 背景色（乗車はカード全体）
     let cardClass = "bg-white border-slate-200";
     let nameClass = "text-slate-900";
     let subClass  = "text-slate-600";
@@ -1007,8 +913,6 @@ function renderCheck(){
       nameClass = "text-white";
       subClass  = "text-blue-50";
       topBtnClass = "bg-white/15 border-white/20 text-white hover:bg-white/20";
-    }else if(st.status==="none"){
-      cardClass = "bg-white border-slate-200";
     }else if(st.status==="pickup"){
       cardClass = "bg-emerald-500 border-emerald-600 shadow-lg shadow-emerald-100";
       nameClass = "text-white"; subClass="text-emerald-50";
@@ -1023,28 +927,41 @@ function renderCheck(){
       topBtnClass = "bg-white/40 border-white/40 text-amber-950 hover:bg-white/50";
     }
 
+    // ★レイアウト統一（高さ固定・行枠固定・中身が必ず収まる）
     const card=document.createElement("div");
-    card.className = `tap relative rounded-3xl border-2 p-3 h-[116px] flex flex-col justify-between cursor-pointer ${cardClass} ${locked ? "pointer-events-none opacity-60" : ""}`;
+    card.className = `tap relative rounded-3xl border-2 p-3 h-[132px] flex flex-col justify-between cursor-pointer ${cardClass} ${locked ? "pointer-events-none opacity-60" : ""}`;
     card.onclick = ()=> Actions.quickToggle(s.id);
 
+    const noteText = st.note ? `📝 ${st.note}` : `📝`;
+    const noteVisibility = st.note ? "" : "invisible";
+
     card.innerHTML = `
-      <div class="flex items-start justify-between gap-2">
+      <!-- 1段目：No / メニュー -->
+      <div class="flex items-center justify-between gap-2">
         <div class="text-[10px] font-black ${st.status==="ride"||st.status==="pickup" ? "text-white/80" : "text-slate-400"}">NO.${esc(s.num)}</div>
         <button class="tap pointer-events-auto px-2 py-1 rounded-xl border text-xs font-black ${topBtnClass}"
           onclick="event.stopPropagation(); UI.openModal('${esc(s.id)}')">⋯</button>
       </div>
 
+      <!-- 2段目：氏名（1行固定） -->
       <div class="min-w-0">
-        <div class="font-black text-sm truncate ${nameClass}">${esc(s.name)}</div>
-        <div class="mt-1 flex items-center gap-2">
-          <span class="chip ${info.chip}">${esc(info.label)}</span>
-          ${st.note ? `<span class="text-[10px] font-black ${st.status==="ride"||st.status==="pickup" ? "text-white" : "text-amber-700"} ${st.status==="ride"||st.status==="pickup" ? "bg-white/15 border border-white/20" : "bg-amber-50 border border-amber-100"} px-2 py-1 rounded-xl truncate">📝 ${esc(st.note)}</span>` : ``}
-        </div>
+        <div class="font-black text-[13px] leading-tight truncate ${nameClass}">${esc(s.name)}</div>
       </div>
 
-      <div class="text-[10px] font-bold truncate ${subClass}">
-        <span class="px-2 py-0.5 rounded-lg ${busClass(s.bus)}">${esc(busShort(s.bus))}</span>
-        <span class="ml-1">${esc(s.stop)}</span>
+      <!-- 3段目：状態＋備考（高さ固定：備考なしでも枠を確保） -->
+      <div class="flex items-center gap-2 min-w-0">
+        <span class="chip ${info.chip}">${esc(info.label)}</span>
+        <span class="text-[10px] font-black px-2 py-1 rounded-xl border truncate ${noteVisibility}
+          ${st.status==="ride"||st.status==="pickup"
+            ? "text-white bg-white/15 border-white/20"
+            : "text-amber-700 bg-amber-50 border-amber-100"}"
+        >${esc(noteText)}</span>
+      </div>
+
+      <!-- 4段目：バス停（1行固定） -->
+      <div class="flex items-center gap-2 min-w-0">
+        <span class="px-2 py-0.5 rounded-lg text-[10px] font-black ${busClass(s.bus)}">${esc(busShort(s.bus))}</span>
+        <div class="text-[11px] font-bold truncate ${subClass}">${esc(s.stop)}</div>
       </div>
     `;
     grid.appendChild(card);
@@ -1085,7 +1002,7 @@ function renderMonitor(){
   const grid = $("#monitor-grid");
   grid.innerHTML="";
 
-  // ★余計な枠を狭く：最小幅を縮める
+  // 余計な枠を狭く（列最小幅を縮める）
   grid.style.gridTemplateColumns = "repeat(auto-fit, minmax(220px, 1fr))";
 
   classes.forEach(cls=>{
@@ -1116,25 +1033,34 @@ function renderMonitor(){
 
       <div class="mt-1 flex flex-wrap gap-1">${breakdown || `<span class="text-[11px] font-bold text-slate-400">内訳なし</span>`}</div>
 
-      <!-- ★1クラス20人想定：行を詰める（高さ・余白縮小） -->
+      <!-- ★行レイアウト：名前の右にバス（固定幅・右寄せ）／「乗」表示は削除 -->
       <div class="mt-2 grid gap-1">
         ${kids.map(s=>{
           const st = getDailyState(State.date, s.id);
           const info = APP.statuses.find(x=>x.key===st.status) || APP.statuses[0];
 
-          // 乗車だけ目立たせる：背景の帯（薄青）
-          const rowBg = (st.status==="ride") ? "bg-blue-50 border-blue-100" : "bg-white border-slate-100";
+          // 乗車だけ目立たせる：背景の帯
+          let rowBg = "bg-white border-slate-100";
+          if(st.status==="ride") rowBg="bg-blue-50 border-blue-100";
+          else if(st.status==="pickup") rowBg="bg-emerald-50 border-emerald-100";
+          else if(st.status==="absent") rowBg="bg-slate-100 border-slate-200";
+          else if(st.status==="other") rowBg="bg-amber-50 border-amber-100";
+
+          // 「乗」は出さない：乗車は背景で判別（欠/送/他だけ小さく表示）
+          const showStatusMini = (st.status!=="none" && st.status!=="ride");
+          const statusMini = showStatusMini ? `<span class="px-1.5 py-0.5 rounded-lg text-[10px] font-black ${info.chip}">${esc(info.short)}</span>` : "";
+
           return `
-            <div class="grid grid-cols-[28px_1fr_30px_30px] items-center gap-1 px-1.5 py-1 rounded-2xl border ${rowBg}">
-              <div class="w-7 h-6 rounded-xl bg-slate-900 text-white grid place-items-center font-black text-[11px]">${esc(s.num)}</div>
-              <div class="min-w-0">
-                <div class="font-black truncate" style="font-size:11px">${esc(s.name)}</div>
+            <div class="grid grid-cols-[28px_1fr_56px] items-center gap-1 px-1.5 py-1 rounded-2xl border ${rowBg}">
+              <div class="w-7 h-6 rounded-xl bg-slate-900 text-white grid place-items-center font-black text-[11px] leading-none">${esc(s.num)}</div>
+
+              <div class="min-w-0 flex items-center gap-2">
+                <div class="min-w-0 font-black truncate" style="font-size:11px; line-height:1.1;">${esc(s.name)}</div>
+                ${statusMini}
               </div>
-              <div class="text-center">
-                <span class="px-1.5 py-0.5 rounded-lg text-[10px] font-black ${info.chip}">${esc(info.short)}</span>
-              </div>
-              <div class="text-center">
-                <span class="px-1.5 py-0.5 rounded-lg text-[10px] font-black ${busClass(s.bus)}">${esc(busShort(s.bus))}</span>
+
+              <div class="w-14 flex justify-end">
+                <span class="w-14 inline-flex justify-center px-0 py-0.5 rounded-lg text-[10px] font-black leading-none ${busClass(s.bus)}">${esc(busShort(s.bus))}</span>
               </div>
             </div>
           `;
@@ -1290,7 +1216,7 @@ function fitMonitor(){
 }
 
 /* -------------------------
-   Settings / CSV / Export / Import (省略部分はそのまま動作)
+   Settings / Export / Import
 ------------------------- */
 function downloadBlob(content, filename, type="application/octet-stream"){
   const blob = new Blob([content], {type});
@@ -1497,7 +1423,6 @@ function setupSubscriptions(){
   });
 
   unsubDaily = State.backend.subscribeDaily(State.date, (daily)=>{
-    // status normalize
     if(daily && daily.states){
       for(const sid of Object.keys(daily.states)){
         daily.states[sid].status = normalizeStatus(daily.states[sid].status);
@@ -1562,9 +1487,6 @@ function bind(){
   $("#btn-monitor-refresh").onclick=()=>{ renderMonitor(); layoutMonitor(); fitMonitor(); showToast("更新しました"); };
 
   $("#print-mode").addEventListener("change",(e)=>{ State.printMode=e.target.value; renderPrint(); });
-
-  $("#btn-undo").onclick=()=>Actions.undo();
-  $("#btn-reset-daily").onclick=()=>Actions.resetDaily();
 
   $("#btn-fullscreen").onclick=async()=>{
     try{
@@ -1647,11 +1569,6 @@ function bind(){
       if(idx>=0) roster[idx]=item;
     }else{
       roster.push(item);
-    }
-
-    const dup=roster.filter(s=>s.class===item.class && Number(s.num)===Number(item.num));
-    if(dup.length>1){
-      if(!confirm(`同一クラス・番号が重複しています（${item.class} No.${item.num}）。保存しますか？`)) return;
     }
 
     await State.backend.saveRoster(roster);
