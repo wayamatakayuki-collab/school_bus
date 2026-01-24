@@ -1,4 +1,4 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
@@ -16,137 +16,203 @@
     ::-webkit-scrollbar-thumb{ background:#cbd5e1; border-radius:10px; }
     ::-webkit-scrollbar-thumb:hover{ background:#94a3b8; }
 
-    /* =========================
-       PRINT（要望反映）
-       - ★縦向き（A4 portrait）
-       - 学級別：従来どおり（バス停あり）
-       - バス別：バス停列を削除 / 氏名7文字想定・長い場合は自動縮小（renderPrint側）
-       - ★上瀑バスのみ2列表示（renderPrint側）
-       - ★バス別：A4 1枚に3バス（renderPrint側 + print CSSでコンパクト化）
-    ========================= */
+    /* ★A4縦向きに固定（@media の外に出す方が安定） */
+    @page{ size:A4 portrait; margin:7mm; }
+
     @media print{
-      .no-print{ display:none !important; }
-      body{ background:white !important; margin:0; padding:0; }
-      .print-shell{ max-width:100% !important; width:100% !important; padding:0 !important; margin:0 !important; }
+  .no-print{ display:none !important; }
 
-      /* ★A4縦向きに固定（バス別/学級別の要望） */
-      @page{ size:A4 portrait; margin:7mm; }
+  /* =========================
+     ★Edge白紙ページ対策（追加）
+     1) body の min-h-screen(=min-height:100vh) を印刷では無効化
+     2) section-print の space-y-* が display:none でも余白を作るのを無効化
+     3) fixed系（オーバーレイ/トースト/モーダル）を完全排除
+  ========================= */
+  html, body{
+    height:auto !important;
+    min-height:auto !important;
+  }
 
-      .print-page{ display:block; width:100%; page-break-after:always; }
-      .print-page:last-child{ page-break-after:auto; }
+  #section-print{
+    padding:0 !important;
+    margin:0 !important;
+  }
+  /* Tailwindのspace-y-*対策（display:noneでもmarginが残ることがある） */
+  #section-print > :not([hidden]) ~ :not([hidden]){
+    margin-top:0 !important;
+  }
 
-      .print-card{ border:2px solid #000 !important; box-shadow:none !important; }
+  #login-overlay, #cloud-error-overlay, #modal,
+  #toast, #toast *{
+    display:none !important;
+  }
 
-      /* 見出し（ページ内に載せる前提） */
-      .print-title{
-        border-bottom:3px solid #000 !important;
-        padding-bottom:2.2mm !important;
-        margin-bottom:2.2mm !important;
-      }
-      .print-title .print-title-en{ font-size:13pt !important; font-weight:900 !important; line-height:1.1 !important; }
-      .print-title .print-title-ja{ font-size:10.5pt !important; font-weight:900 !important; line-height:1.15 !important; }
+  /* 印刷時は印刷コンテンツだけ表示 */
+  header,
+  #section-overview,
+  #section-check,
+  #section-monitor,
+  #section-settings{
+    display:none !important;
+  }
 
-      /* 共通テーブル */
-      table{ width:100% !important; border-collapse:collapse !important; table-layout:fixed !important; }
-      th,td{ border:1px solid #000 !important; vertical-align:middle; }
+  /* hidden が付いていても印刷だけは出す（印刷タブの中身） */
+  #section-print{
+    display:block !important;
+  }
 
-      /* （学級別は従来どおり “折返しOK”） */
-      .td-name{ font-weight:900 !important; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-      .td-stop{ white-space:normal; overflow-wrap:anywhere; word-break:break-word; }
-      .td-class{ font-weight:900 !important; white-space:nowrap !important; overflow:hidden !important; text-overflow:ellipsis !important; text-align:center !important; }
+  body{
+    background:white !important;
+    margin:0 !important;
+    padding:0 !important;
 
-      /* =========================
-         バス別：超コンパクト（縦向き）
-      ========================= */
-      .print-bus-card{
-        border:2px solid #000 !important;
-        padding:2.0mm !important;
-        page-break-inside:avoid;
-      }
-      .print-bus-title{
-        font-size:10.5pt !important;
-        font-weight:900 !important;
-        margin:0 0 1.6mm 0 !important;
-        line-height:1.1 !important;
-      }
+    /* ★Edge白紙対策：100vh系・スクロール系を印刷では解除 */
+    height:auto !important;
+    min-height:auto !important;
+    overflow:visible !important;
 
-      /* バス別だけ：折返し禁止（高さ節約） */
-      .print-bus-card .td-name,
-      .print-bus-card .td-class{
-        white-space:nowrap !important;
-        overflow:hidden !important;
-        text-overflow:ellipsis !important;
-      }
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
 
-      /* バス別テーブル：詰め */
-      .print-bus-card table th{
-        background:#f3f4f6 !important;
-        font-size:7.0pt !important;
-        padding:1.0mm 1.0mm !important;
-        line-height:1.02 !important;
-      }
-      .print-bus-card table td{
-        font-size:7.4pt !important;
-        padding:1.0mm 1.0mm !important;
-        line-height:1.02 !important;
-      }
-      .print-bus-card table tbody tr{
-        height:4.05mm;
-      }
+  .print-shell{
+    max-width:100% !important;
+    width:100% !important;
+    padding:0 !important;
+    margin:0 !important;
+  }
 
-      /* ★バス別（A4 1枚に3バス）：さらに詰める */
-      .print-page.bus-sheet{ padding:2.0mm !important; }
-      .bus-sheet .print-title{
-        padding-bottom:1.6mm !important;
-        margin-bottom:1.6mm !important;
-        border-bottom:3px solid #000 !important;
-      }
-      .bus-sheet .print-title .print-title-en{ font-size:11pt !important; }
-      .bus-sheet .print-title .print-title-ja{ font-size:9.2pt !important; }
+  /* プレビュー枠の余白/装飾を落として印刷を綺麗に */
+  #print-content{
+    padding:0 !important;
+    margin:0 !important;
+    border:none !important;
+    box-shadow:none !important;
+    background:transparent !important;
+    overflow:visible !important;
+  }
 
-      .print-bus-sheet{
-        display:grid !important;
-        grid-template-rows:repeat(3, auto) !important;
-        gap:2.2mm !important;
-      }
-      .print-bus-sheet .print-bus-card{
-        padding:1.6mm !important;
-      }
-      .print-bus-sheet .print-bus-title{
-        font-size:9.2pt !important;
-        margin:0 0 1.2mm 0 !important;
-      }
-      .print-bus-sheet .print-bus-card table th{
-        font-size:6.0pt !important;
-        padding:0.8mm 0.8mm !important;
-        line-height:1.02 !important;
-      }
-      .print-bus-sheet .print-bus-card table td{
-        font-size:6.4pt !important;
-        padding:0.8mm 0.8mm !important;
-        line-height:1.02 !important;
-      }
-      .print-bus-sheet .print-bus-card table tbody tr{
-        height:3.45mm;
-      }
+  /* =========================
+     ★白紙ページ対策（ここが肝）
+     - 末尾の改ページ(after)をやめる
+     - 2枚目以降の「前」で改ページ
+  ========================= */
+  #print-content .print-page{
+    display:block;
+    width:100%;
+    margin:0 !important;
 
-      /* 学級別（担任控え）は現状維持 */
-      .print-class-card{
-        border:2px solid #000 !important;
-        padding:3mm !important;
-        margin-bottom:5mm !important;
-        page-break-inside:avoid;
-      }
-      .print-class-title{
-        font-size:12pt !important;
-        font-weight:900 !important;
-        margin-bottom:2mm !important;
-      }
+    /* 末尾改ページを禁止（白紙ページ根絶） */
+    page-break-after:auto !important;
+    break-after:auto !important;
 
-      /* 人数が多い時に詰める保険（学級別用） */
-      .compact td{ font-size:9pt !important; padding:5px 6px !important; }
-      .compact th{ font-size:8.5pt !important; padding:5px 6px !important; }
-    }
+    /* 途中分割も抑止 */
+    page-break-inside:avoid !important;
+    break-inside:avoid !important;
+  }
+
+  /* 2ページ目以降の前で改ページ */
+  #print-content .print-page + .print-page{
+    page-break-before:always !important;
+    break-before:page !important;
+  }
+
+  /* ★念押し：最後のページの末尾で“強制的に次ページ”を作らせない */
+  #print-content > .print-page:last-child{
+    page-break-after:auto !important;
+    break-after:auto !important;
+  }
+
+  /* 以降は既存スタイル（そのまま） */
+  .print-card{ border:2px solid #000 !important; box-shadow:none !important; }
+
+  .print-title{
+    border-bottom:3px solid #000 !important;
+    padding-bottom:2.2mm !important;
+    margin-bottom:2.2mm !important;
+  }
+  .print-title .print-title-en{ font-size:13pt !important; font-weight:900 !important; line-height:1.1 !important; }
+  .print-title .print-title-ja{ font-size:10.5pt !important; font-weight:900 !important; line-height:1.15 !important; }
+
+  table{ width:100% !important; border-collapse:collapse !important; table-layout:fixed !important; }
+  th,td{ border:1px solid #000 !important; vertical-align:middle; }
+
+  .td-name{ font-weight:900 !important; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .td-stop{ white-space:normal; overflow-wrap:anywhere; word-break:break-word; }
+  .td-class{ font-weight:900 !important; white-space:nowrap !important; overflow:hidden !important; text-overflow:ellipsis !important; text-align:center !important; }
+
+  .print-bus-card{
+    border:2px solid #000 !important;
+    padding:2.0mm !important;
+    page-break-inside:avoid;
+    break-inside:avoid;
+  }
+  .print-bus-title{
+    font-size:10.5pt !important;
+    font-weight:900 !important;
+    margin:0 0 1.6mm 0 !important;
+    line-height:1.1 !important;
+  }
+
+  .print-bus-card .td-name,
+  .print-bus-card .td-class{
+    white-space:nowrap !important;
+    overflow:hidden !important;
+    text-overflow:ellipsis !important;
+  }
+
+  .print-bus-card table th{
+    background:#f3f4f6 !important;
+    font-size:7.0pt !important;
+    padding:1.0mm 1.0mm !important;
+    line-height:1.02 !important;
+  }
+  .print-bus-card table td{
+    font-size:7.4pt !important;
+    padding:1.0mm 1.0mm !important;
+    line-height:1.02 !important;
+  }
+  .print-bus-card table tbody tr{ height:4.05mm; }
+
+  .print-page.bus-sheet{ padding:2.0mm !important; }
+  .bus-sheet .print-title{
+    padding-bottom:1.6mm !important;
+    margin-bottom:1.6mm !important;
+    border-bottom:3px solid #000 !important;
+  }
+  .bus-sheet .print-title .print-title-en{ font-size:11pt !important; }
+  .bus-sheet .print-title .print-title-ja{ font-size:9.2pt !important; }
+
+  /* ★差し替え：印刷時は grid をやめる（Chrome/Edgeの“最後に白紙ページ”対策） */
+  .print-bus-sheet{ display:block !important; }
+  .print-bus-sheet .print-bus-card{ margin:0 0 2.2mm 0 !important; }
+  .print-bus-sheet .print-bus-card:last-child{ margin-bottom:0 !important; }
+
+  /* ↓ここから下は“あなたの既存”をそのまま維持（上のgrid指定だけ除去） */
+  .print-bus-sheet .print-bus-card{ padding:1.6mm !important; }
+  .print-bus-sheet .print-bus-title{ font-size:9.2pt !important; margin:0 0 1.2mm 0 !important; }
+  .print-bus-sheet .print-bus-card table th{ font-size:6.0pt !important; padding:0.8mm 0.8mm !important; line-height:1.02 !important; }
+  .print-bus-sheet .print-bus-card table td{ font-size:6.4pt !important; padding:0.8mm 0.8mm !important; line-height:1.02 !important; }
+  .print-bus-sheet .print-bus-card table tbody tr{ height:3.45mm; }
+
+  .print-class-card{
+    border:2px solid #000 !important;
+    padding:3mm !important;
+    margin-bottom:5mm !important;
+    page-break-inside:avoid;
+    break-inside:avoid;
+  }
+  .print-class-title{
+    font-size:12pt !important;
+    font-weight:900 !important;
+    margin-bottom:2mm !important;
+  }
+
+  .compact td{ font-size:9pt !important; padding:5px 6px !important; }
+  .compact th{ font-size:8.5pt !important; padding:5px 6px !important; }
+}
+
+
 
     .tap{ transition:transform .08s ease, box-shadow .08s ease; }
     .tap:active{ transform:scale(.98); }
@@ -158,7 +224,6 @@
       font-weight:900;
     }
 
-    /* Status chips */
     .chip{ display:inline-flex; align-items:center; gap:.35rem; padding:.18rem .5rem; border-radius:.65rem; font-weight:900; font-size:11px; border:1px solid transparent; white-space:nowrap; line-height:1; }
     .chip-none{ background:#f8fafc; color:#64748b; border-color:#e2e8f0; }
     .chip-ride{ background:#dbeafe; color:#1e40af; border-color:#bfdbfe; }
@@ -166,62 +231,145 @@
     .chip-pickup{ background:#dcfce7; color:#14532d; border-color:#bbf7d0; }
     .chip-other{ background:#fef3c7; color:#78350f; border-color:#fde68a; }
 
-    /* Bus badges */
-    .bus-u{ background-color:#dbeafe; color:#1e40af; border:1px solid #bfdbfe; } /* 上瀑 */
-    .bus-s{ background-color:#fef3c7; color:#92400e; border:1px solid #fde68a; } /* 総元 */
-    .bus-t{ background-color:#dcfce7; color:#166534; border:1px solid #bbf7d0; } /* 田代 */
+    .bus-u{ background-color:#dbeafe; color:#1e40af; border:1px solid #bfdbfe; }
+    .bus-s{ background-color:#fef3c7; color:#92400e; border:1px solid #fde68a; }
+    .bus-t{ background-color:#dcfce7; color:#166534; border:1px solid #bbf7d0; }
 
     .toast-in{ animation:toastIn .18s ease-out; }
     @keyframes toastIn{ from{ transform:translateY(8px); opacity:0; } to{ transform:translateY(0); opacity:1; } }
 
     .modal-backdrop{ background:rgba(15,23,42,.55); }
+
+    /* ヘッダーのピルが縮んで縦書きになるのを防止（JSでclassが上書きされても効く） */
+    #cloud-pill, #auth-pill { white-space: nowrap; flex-shrink: 0; }
   </style>
 
-  <!-- Firebase（クラウド同期用）※クラウド利用時は Auth ユーザーを作成（例：bus@otakisho.local / otakisho） -->
+  <!-- Firebase（このJSは window.firebase を使うので必須） -->
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
 </head>
 
 <body class="bg-slate-50 text-slate-800 min-h-screen">
-  <header class="no-print sticky top-0 z-40 bg-white/75 backdrop-blur-md border-b border-slate-200">
-    <div class="max-w-[1400px] mx-auto px-4 py-3 flex flex-wrap items-center gap-3">
-      <div class="flex items-center gap-2 mr-auto">
-        <div class="w-10 h-10 rounded-2xl bg-blue-600 shadow-lg shadow-blue-100 grid place-items-center">
-          <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-            <path stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
-              d="M4 17V7a2 2 0 0 1 2-2h9.5a2 2 0 0 1 1.4.6L20 8.7a2 2 0 0 1 .6 1.4V17a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"/>
-            <path stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" d="M4 10h16"/>
-          </svg>
+  <!-- Login Overlay（SchoolCal方式：設定画面なし。ログイン後、自動でクラウド共有） -->
+  <div id="login-overlay" class="fixed inset-0 z-[60] hidden">
+    <div class="absolute inset-0 bg-slate-950/60"></div>
+    <div class="relative max-w-md mx-auto mt-16 px-4">
+      <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl overflow-hidden">
+        <div class="p-5 border-b border-slate-200 flex items-center gap-3">
+          <div class="w-12 h-12 rounded-2xl bg-blue-600 text-white grid place-items-center font-black">☁</div>
+          <div class="min-w-0">
+            <div class="text-lg font-black">クラウド共有ログイン</div>
+            <div class="text-xs font-bold text-slate-500">ログイン後、自動で同期します</div>
+          </div>
         </div>
-        <div class="leading-tight">
-          <div class="text-lg font-black tracking-tight">大多喜小学校 スクールバス乗車確認</div>
-          <div class="text-[11px] font-bold text-slate-400">©2026 Takayuki WAYAMA</div>
+        <div class="p-5 space-y-4">
+          <div>
+            <div class="text-[11px] font-black text-slate-400 tracking-widest uppercase">ID</div>
+            <input id="login-email" class="mt-2 w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 font-bold outline-none focus:ring-2 focus:ring-blue-500" placeholder="bus@otakisho.local" />
+          </div>
+          <div>
+            <div class="text-[11px] font-black text-slate-400 tracking-widest uppercase">Password</div>
+            <input id="login-password" type="password" class="mt-2 w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 font-bold outline-none focus:ring-2 focus:ring-blue-500" placeholder="otakisho" />
+          </div>
+
+          <div id="login-error" class="hidden px-3 py-2 rounded-2xl bg-rose-50 border border-rose-100 text-rose-700 text-xs font-black"></div>
+
+          <button id="btn-login" class="tap w-full px-6 py-3 rounded-2xl bg-slate-900 text-white font-black shadow-xl hover:bg-black">
+            ログイン
+          </button>
+
+          <div class="text-[11px] font-bold text-slate-500">
+            ※ Firebase Auth に <span class="font-black">bus@otakisho.local / otakisho</span> が作成済み<br/>
+            © 2026 Takayuki WAYAMA
+          </div>
         </div>
       </div>
+    </div>
+  </div>
 
+  <!-- Cloud Error Overlay（クラウド必須：失敗時にローカルへ黙って落ちない） -->
+  <div id="cloud-error-overlay" class="fixed inset-0 z-[55] hidden">
+    <div class="absolute inset-0 bg-slate-950/60"></div>
+    <div class="relative max-w-2xl mx-auto mt-14 px-4">
+      <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl overflow-hidden">
+        <div class="p-5 border-b border-slate-200 flex items-center gap-3">
+          <div class="w-12 h-12 rounded-2xl bg-rose-600 text-white grid place-items-center font-black">!</div>
+          <div class="min-w-0">
+            <div class="text-lg font-black">クラウド接続に失敗しました</div>
+            <div class="text-xs font-bold text-slate-500">このアプリはクラウド共有前提です。下記を確認してください。</div>
+          </div>
+        </div>
+        <div class="p-5 space-y-3 text-sm">
+          <div id="cloud-error-msg" class="px-3 py-2 rounded-2xl bg-rose-50 border border-rose-100 text-rose-700 font-black"></div>
+          <ul class="list-disc pl-5 text-slate-700 font-bold space-y-1">
+            <li>Firestore Rules が <span class="font-black">bus@otakisho.local</span> に read/write を許可しているか</li>
+            <li>Authentication（Email/Password）が有効で、ユーザーが作成済みか</li>
+            <li>Authorized domains に GitHub Pages のドメインを追加したか</li>
+            <li>下のコード内 <span class="font-black">PRESET_FIREBASE_CONFIG</span> が正しいか</li>
+          </ul>
+          <button id="btn-cloud-error-close" class="tap px-5 py-3 rounded-2xl bg-slate-900 text-white font-black shadow-xl hover:bg-black">
+            閉じる（確認したら再読み込み）
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <header class="no-print sticky top-0 z-40 bg-white/75 backdrop-blur-md border-b border-slate-200">
+  <div class="max-w-[1400px] mx-auto px-4 py-3
+              flex items-center gap-3 flex-nowrap overflow-x-auto
+              lg:grid lg:grid-cols-[minmax(240px,360px)_auto_minmax(0,1fr)]
+              lg:gap-4 lg:overflow-visible">
+
+    <!-- LEFT：タイトル（最大幅を制限して、右にスペースを渡す） -->
+    <div class="flex items-center gap-2 min-w-0 lg:max-w-[360px]">
+      <div class="w-10 h-10 rounded-2xl bg-blue-600 shadow-lg shadow-blue-100 grid place-items-center shrink-0">
+        <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+            d="M4 17V7a2 2 0 0 1 2-2h9.5a2 2 0 0 1 1.4.6L20 8.7a2 2 0 0 1 .6 1.4V17a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"/>
+          <path stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" d="M4 10h16"/>
+        </svg>
+      </div>
+
+      <div class="min-w-0 leading-tight">
+        <div class="text-base md:text-lg font-black tracking-tight truncate">
+          大多喜小学校 スクールバス乗車確認
+        </div>
+        <div class="text-[11px] font-bold text-slate-400 truncate">©2026 Takayuki WAYAMA</div>
+      </div>
+    </div>
+
+    <!-- CENTER：日付（常に中央） -->
+    <div class="lg:justify-self-center shrink-0">
       <div class="flex items-center gap-2 bg-slate-100 rounded-2xl p-2 border border-slate-200">
         <button id="btn-prev-day" class="tap px-3 py-2 rounded-xl bg-white border border-slate-200 shadow-sm text-xs font-black hover:bg-slate-50" title="前日">◀</button>
         <input id="date-picker" type="date" class="bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm font-black outline-none focus:ring-2 focus:ring-blue-500" />
         <button id="btn-next-day" class="tap px-3 py-2 rounded-xl bg-white border border-slate-200 shadow-sm text-xs font-black hover:bg-slate-50" title="翌日">▶</button>
-        <div class="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-black">下校</div>
       </div>
-
-      <div class="flex items-center gap-2">
-        <div id="cloud-pill" class="px-3 py-2 rounded-2xl border text-xs font-black bg-white border-slate-200 text-slate-500">☁ ローカル</div>
-        <button id="btn-fullscreen" class="tap px-3 py-2 rounded-2xl bg-slate-900 text-white text-xs font-black shadow-lg hover:bg-black">全画面</button>
-      </div>
-
-      <nav class="w-full md:w-auto md:ml-auto">
-        <div class="flex bg-slate-100 p-1 rounded-2xl border border-slate-200 overflow-x-auto">
-          <button class="px-4 py-2 rounded-xl text-xs md:text-sm transition-all tab-active" id="tab-check" onclick="UI.switchTab('check')">担任チェック</button>
-          <button class="px-4 py-2 rounded-xl text-xs md:text-sm transition-all text-slate-500" id="tab-monitor" onclick="UI.switchTab('monitor')">全校モニタ</button>
-          <button class="px-4 py-2 rounded-xl text-xs md:text-sm transition-all text-slate-500" id="tab-print" onclick="UI.switchTab('print')">印刷</button>
-          <button class="px-4 py-2 rounded-xl text-xs md:text-sm transition-all text-slate-500" id="tab-settings" onclick="UI.switchTab('settings')">名簿/設定</button>
-        </div>
-      </nav>
     </div>
-  </header>
+
+    <!-- RIGHT：右ははみ出したらこの領域だけ横スクロール（重なり防止） -->
+    <div class="min-w-0 flex-1 lg:flex-none lg:justify-self-end overflow-x-auto">
+      <div class="flex items-center justify-end gap-2 flex-nowrap min-w-max">
+        <div id="cloud-pill" class="px-3 py-2 rounded-2xl border text-xs font-black bg-white border-slate-200 text-slate-500">☁ 未接続</div>
+        <div id="auth-pill" class="px-3 py-2 rounded-2xl border text-xs font-black bg-white border-slate-200 text-slate-500">👤 未ログイン</div>
+        <button id="btn-fullscreen" class="tap px-3 py-2 rounded-2xl bg-slate-900 text-white text-xs font-black shadow-lg hover:bg-black shrink-0">全画面</button>
+
+        <nav class="ml-2 shrink-0">
+          <div class="flex bg-slate-100 p-1 rounded-2xl border border-slate-200 flex-nowrap whitespace-nowrap">
+            <button class="px-4 py-2 rounded-xl text-xs md:text-sm transition-all tab-active" id="tab-check" onclick="UI.switchTab('check')">担任チェック</button>
+            <button class="px-4 py-2 rounded-xl text-xs md:text-sm transition-all text-slate-500" id="tab-monitor" onclick="UI.switchTab('monitor')">全校モニタ</button>
+            <button class="px-4 py-2 rounded-xl text-xs md:text-sm transition-all text-slate-500" id="tab-print" onclick="UI.switchTab('print')">印刷</button>
+            <button class="px-4 py-2 rounded-xl text-xs md:text-sm transition-all text-slate-500" id="tab-settings" onclick="UI.switchTab('settings')">名簿/設定</button>
+          </div>
+        </nav>
+      </div>
+    </div>
+
+  </div>
+</header>
+
 
   <main id="main-shell" class="print-shell max-w-[1400px] mx-auto px-4 py-6 space-y-6">
     <!-- Overview -->
@@ -276,7 +424,7 @@
 
         <div class="ml-auto flex flex-wrap items-center gap-2">
           <button id="btn-class-done" class="tap px-5 py-2 rounded-2xl text-sm font-black border-2 border-blue-600 text-blue-700 hover:bg-blue-50">学級確認を完了</button>
-          <button id="btn-class-unlock" class="tap px-4 py-2 rounded-2xl text-xs font-black bg-slate-100 border border-slate-200 hover:bg	cc-slate-200 hidden">ロック解除</button>
+          <button id="btn-class-unlock" class="tap px-4 py-2 rounded-2xl text-xs font-black bg-slate-100 border border-slate-200 hover:bg-slate-200 hidden">ロック解除</button>
 
           <button id="btn-mark-all-ride" class="tap px-4 py-2 rounded-2xl text-xs font-black bg-blue-600 text-white shadow-lg shadow-blue-100 hover:bg-blue-700">全員 乗車</button>
           <button id="btn-mark-all-clear" class="tap px-4 py-2 rounded-2xl text-xs font-black bg-slate-200 text-slate-700 hover:bg-slate-300">全員 クリア</button>
@@ -312,7 +460,7 @@
       </div>
 
       <div class="no-print text-[11px] font-bold text-slate-500">
-        ※ スクロール不要：画面に収まらない場合は自動縮小して全員表示します（1クラス最大20人想定のコンパクト表示）。
+        ※ 画面に収まらない場合は自動縮小して全員表示します（1クラス最大20人想定）。
       </div>
     </section>
 
@@ -326,8 +474,8 @@
         <div class="flex items-center gap-2">
           <span class="text-[11px] font-black text-slate-400 tracking-widest uppercase">形式</span>
           <select id="print-mode" class="bg-slate-100 border border-slate-200 px-4 py-2 rounded-2xl font-black outline-none">
-            <option value="bus">バス別</option>
-            <option value="class">学級別（担任控え）</option>
+            <option value="bus">乗車確認用</option>
+            <option value="class">学級控え用</option>
           </select>
         </div>
 
@@ -346,68 +494,57 @@
 
     <!-- 4) Settings -->
     <section id="section-settings" class="hidden space-y-6 no-print">
+      <!-- SchoolCal方式：Firebase設定貼り付け等は置かない。ログイン＆クラウド共有のみ表示 -->
       <div class="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
         <div class="flex flex-wrap items-start gap-4">
           <div class="mr-auto">
-            <div class="text-xl font-black text-slate-800">運用設定</div>
-            <div class="text-xs font-bold text-slate-500 mt-1">職員室モニタと担任端末で共有したい場合はFirebase設定で同期できます（未設定ならローカル）。</div>
+            <div class="text-xl font-black text-slate-800">クラウド共有（ログイン）</div>
+            <div class="text-xs font-bold text-slate-500 mt-1">
+              ※ ログイン後、自動的に同期します。
+            </div>
           </div>
           <div class="flex gap-2">
-            <button id="btn-save-config" class="tap px-5 py-2 rounded-2xl bg-blue-600 text-white text-sm font-black shadow-lg shadow-blue-100 hover:bg-blue-700">設定を保存</button>
+            <button id="btn-logout" class="tap px-5 py-2 rounded-2xl bg-slate-100 border border-slate-200 text-sm font-black hover:bg-slate-200">ログアウト</button>
+            <button id="btn-save-config" class="tap px-5 py-2 rounded-2xl bg-blue-600 text-white text-sm font-black shadow-lg shadow-blue-100 hover:bg-blue-700">表示名を保存</button>
           </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-5">
           <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4">
             <div class="text-[11px] font-black text-slate-400 tracking-widest uppercase">表示名（更新者表示）</div>
-            <input id="cfg-display-name" class="mt-2 w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 font-bold outline-none focus:ring-2 focus:ring-blue-500" placeholder="例：1-1担任 / 職員室" />
+            <input id="cfg-display-name" class="mt-2 w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 font-bold outline-none focus:ring-2 focus:ring-blue-500" placeholder="例：担任名 / 職員室" />
           </div>
 
           <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4">
-            <div class="text-[11px] font-black text-slate-400 tracking-widest uppercase">保存方式</div>
-            <div class="mt-2 flex bg-white border border-slate-200 rounded-2xl overflow-hidden">
-              <button id="cfg-mode-local" class="px-4 py-3 text-sm font-black hover:bg-slate-50">ローカル</button>
-              <button id="cfg-mode-cloud" class="px-4 py-3 text-sm font-black hover:bg-slate-50">クラウド同期</button>
+            <div class="text-[11px] font-black text-slate-400 tracking-widest uppercase">ログイン状態</div>
+            <div class="mt-2 space-y-2">
+              <div id="settings-auth" class="px-3 py-2 rounded-2xl border text-xs font-black bg-white border-slate-200 text-slate-600">--</div>
+              <div id="settings-cloud" class="px-3 py-2 rounded-2xl border text-xs font-black bg-white border-slate-200 text-slate-600">--</div>
             </div>
-            <div class="text-xs font-bold text-slate-500 mt-2" id="cfg-mode-hint">--</div>
+            <div class="text-[11px] font-bold text-slate-500 mt-2">
+              ※ 共有は Firestore（school_bus）に保存されます
+            </div>
           </div>
 
           <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4">
-            <div class="text-[11px] font-black text-slate-400 tracking-widest uppercase">学校ID（Firestore保存先）</div>
-            <input id="cfg-school-id" class="mt-2 w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 font-bold outline-none focus:ring-2 focus:ring-blue-500" placeholder="例：otaki-es" />
-            <div class="text-[11px] font-bold text-slate-500 mt-2">同一IDなら、どの端末でも同じデータを表示します。</div>
-          </div>
-        </div>
-
-        <div class="mt-4 bg-slate-50 border border-slate-200 rounded-2xl p-4">
-          <div class="flex flex-wrap items-center gap-3">
-            <div class="mr-auto">
-              <div class="text-[11px] font-black text-slate-400 tracking-widest uppercase">Firebase 設定（JSON）</div>
-              <div class="text-xs font-bold text-slate-500 mt-1">Firebase ConsoleのWeb設定オブジェクトを貼り付け。</div>
-              <div class="text-[11px] font-bold text-slate-500 mt-2">※ 共通パスワード運用：Authに <span class="font-black">bus@otakisho.local</span> / <span class="font-black">otakisho</span> を作成しておくとスムーズです。</div>
+            <div class="text-[11px] font-black text-slate-400 tracking-widest uppercase">保存先</div>
+            <div class="mt-2 space-y-2 text-xs font-bold text-slate-700">
+              <div>School ID：<span class="font-black" id="settings-schoolid">--</span></div>
+              <div>Project ID：<span class="font-black" id="settings-projectid">--</span></div>
             </div>
-            <button id="btn-test-cloud" class="tap px-4 py-2 rounded-2xl bg-slate-900 text-white text-xs font-black hover:bg-black">接続テスト</button>
-          </div>
-          <textarea id="cfg-firebase-json" class="mt-3 w-full min-h-[120px] bg-white border border-slate-200 rounded-2xl p-4 font-mono text-xs outline-none focus:ring-2 focus:ring-blue-500" placeholder='例：
-{
-  "apiKey": "...",
-  "authDomain": "...",
-  "projectId": "...",
-  "appId": "..."
-}'></textarea>
-
-          <div class="mt-3 flex flex-wrap items-center gap-2">
-            <div id="cfg-cloud-status" class="px-3 py-2 rounded-2xl border text-xs font-black bg-white border-slate-200 text-slate-500">未接続</div>
-            <div class="text-xs font-bold text-slate-500">※ ルール設定は運用に合わせて調整してください。</div>
+            <div class="text-[11px] font-bold text-slate-500 mt-2">
+              ※ firebaseConfigはコード内に埋め込み済み
+            </div>
           </div>
         </div>
       </div>
 
+      <!-- Roster -->
       <div class="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
         <div class="flex flex-wrap items-center gap-3">
           <div class="mr-auto">
             <div class="text-xl font-black text-slate-800">名簿（基本設定）</div>
-            <div class="text-xs font-bold text-slate-500 mt-1">名簿＝基本情報。日々の状態は日付ごとに保存。</div>
+            <div class="text-xs font-bold text-slate-500 mt-1">※ 日々の状態は日付ごとに保存。</div>
           </div>
 
           <div class="flex flex-wrap gap-2">
@@ -433,12 +570,12 @@
           <form id="student-form" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3">
             <input type="hidden" id="edit-id" />
             <div>
-              <div class="text-[10px] font-black text-slate-400 uppercase ml-1">クラス (例: 1-1)</div>
-              <input id="input-class" class="mt-1 w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 font-bold outline-none focus:ring-2 focus:ring-blue-500" placeholder="1-1" required />
+              <div class="text-[10px] font-black text-slate-400 uppercase ml-1">クラス (例: １年、６年２組)</div>
+              <input id="input-class" class="mt-1 w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 font-bold outline-none focus:ring-2 focus:ring-blue-500" placeholder="" required />
             </div>
             <div>
               <div class="text-[10px] font-black text-slate-400 uppercase ml-1">出席番号</div>
-              <input id="input-num" type="number" class="mt-1 w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 font-bold outline-none focus:ring-2 focus:ring-blue-500" placeholder="1" required />
+              <input id="input-num" type="number" class="mt-1 w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 font-bold outline-none focus:ring-2 focus:ring-blue-500" placeholder="" required />
             </div>
             <div>
               <div class="text-[10px] font-black text-slate-400 uppercase ml-1">氏名</div>
@@ -532,18 +669,28 @@
 
 <script>
 /* =========================
-   Bus Checker (下校のみ) v12.3
-   - 印刷：備考欄なし、幅最適化
-   - クラウド：Firebase Auth（共通PW otakisho）＋ onSnapshot差分同期（ポーリングなし）
-   - 5秒ごとUIハートビート（再描画/フィットのみ：read/write増やさない）
-   - モニタ：折り返しなし横一列（学級カードを2段にしない）
-   - 乗車ハイライト：バス色に統一（担任/モニタ）
-   - CSV：UTF-8/UTF-8(BOM)/Shift-JIS 自動判定（Excel文字化け対策）
-   - CSV書き出し：BOM付与（Excelで日本語が崩れにくい）
+   Bus Checker (下校のみ) v12.3-schoolcal-cloud
+   - SchoolCal方式：Firebase設定画面なし / ログイン後 自動クラウド同期（Firestore）
+   - クラウド必須：失敗時にローカルへ黙って落ちず、原因表示
 ========================= */
 
+/* ★ここだけ差し替え（Firebase Console の Web config をコピペ） */
+const PRESET_FIREBASE_CONFIG = {
+  apiKey: "AIzaSyAMM4vSEptczXS7VFh5Fc8xvWXigCbTQXU",
+  authDomain: "schoolbus-cc762.firebaseapp.com",
+  projectId: "schoolbus-cc762",
+  storageBucket: "schoolbus-cc762.firebasestorage.app",
+  messagingSenderId: "585729970166",
+  appId: "1:585729970166:web:556c33a05e58e48f9481d7",
+  measurementId: "G-D0F2MEDCHE"
+};
+
+
+/* 共有単位（学校ID） */
+const PRESET_SCHOOL_ID = "otaki-es";
+
 const APP = {
-  version: "v12.3",
+  version: "v12.3-schoolcal-cloud",
   storageKey: "busCheckerV123",
   busTypes: ["上瀑バス","総元バス","田代バス"],
   statuses: [
@@ -555,19 +702,10 @@ const APP = {
   ]
 };
 
-const CLOUD_AUTH = {
-  email: "bus@otakisho.local",
-  password: "otakisho"
-};
-
 const $ = (sel)=>document.querySelector(sel);
 function esc(s){
   return String(s ?? "").replace(/[&<>"']/g, (m)=>({
-    "&":"&amp;",
-    "<":"&lt;",
-    ">":"&gt;",
-    '"':"&quot;",
-    "'":"&#39;"
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
   }[m]));
 }
 
@@ -606,14 +744,12 @@ function busClass(busName){
 }
 function busShort(busName){ return String(busName||"").replace("バス","").slice(0,2); }
 
-/* ★印刷：クラス表示（1-1 → 1年1組） */
 function formatClassLabel(cls){
   const raw = String(cls||"").trim();
   const m = raw.match(/^(\d+)\s*[-ー]\s*(\d+)$/);
   if(m) return `${Number(m[1])}年${Number(m[2])}組`;
   return raw;
 }
-/* ★印刷：氏名（7文字想定）を超えたら自動縮小 */
 function countCharsJP(s){
   return Array.from(String(s||"").replace(/\s+/g,"")).length;
 }
@@ -624,7 +760,6 @@ function fitFontPt(str, basePt, maxChars, minPt){
   return Number(pt.toFixed(2));
 }
 
-/* ★乗車ハイライト（バス色） */
 function rideThemeForBus(busName){
   const b=String(busName||"");
   if(b.includes("上瀑")){
@@ -662,15 +797,13 @@ function normalizeStatus(k){
 }
 
 /* -------------------------
-   Local DB
+   Local DB（表示名など端末ローカルに保持）
 ------------------------- */
 function defaultDB(){
   return {
     config:{
       displayName:"",
-      mode:"local",
-      schoolId:"otaki-es",
-      firebaseJSON:""
+      schoolId: PRESET_SCHOOL_ID
     },
     roster:[
       { id: 1, class:"1-1", num:1, name:"佐藤 太郎", bus:"上瀑バス", stop:"上瀑駅前" },
@@ -689,6 +822,7 @@ function loadDB(){
       obj.config = { ...base.config, ...(obj.config||{}) };
       obj.roster ||= [];
       obj.daily ||= {};
+      obj.config.schoolId = PRESET_SCHOOL_ID; // 強制
       return obj;
     }
     return base;
@@ -778,7 +912,7 @@ function derived(){
 }
 
 /* -------------------------
-   Backend (Local / Cloud)
+   Backend
 ------------------------- */
 function createLocalBackend(){
   let rosterListeners=[], dailyListeners=[];
@@ -793,6 +927,10 @@ function createLocalBackend(){
   };
 }
 
+function hasValidFirebaseConfig(cfg){
+  return cfg && typeof cfg==="object" && String(cfg.projectId||"").trim() && !String(cfg.projectId).includes("YOUR_PROJECT");
+}
+
 function createCloudBackend(firebaseConfig, schoolId){
   let app=null, fs=null, auth=null;
   let unsubRoster=null, unsubDaily=null;
@@ -802,10 +940,9 @@ function createCloudBackend(firebaseConfig, schoolId){
   }
   const rosterDocId="roster";
 
-  async function ensureAuthSignedIn(){
+  function requireSignedIn(){
     if(!auth) auth = window.firebase.auth();
-    if(auth.currentUser) return true;
-    await auth.signInWithEmailAndPassword(CLOUD_AUTH.email, CLOUD_AUTH.password);
+    if(!auth.currentUser) throw new Error("未ログイン");
     return true;
   }
 
@@ -813,27 +950,29 @@ function createCloudBackend(firebaseConfig, schoolId){
     type:"cloud",
     init: async()=>{
       if(!window.firebase || !window.firebase.initializeApp) throw new Error("Firebase SDKが読み込めません");
+      if(!hasValidFirebaseConfig(firebaseConfig)) throw new Error("PRESET_FIREBASE_CONFIG が未設定です");
       app = window.firebase.apps?.length ? window.firebase.app() : window.firebase.initializeApp(firebaseConfig);
       fs = window.firebase.firestore();
-      if(!window.firebase.auth) throw new Error("Auth SDKが読み込めません（firebase-auth-compat.js）");
-      await ensureAuthSignedIn();
+      auth = window.firebase.auth();
       return true;
     },
     subscribeRoster:(cb)=>{
+      requireSignedIn();
       if(unsubRoster) unsubRoster();
       unsubRoster = pathBase().doc(rosterDocId).onSnapshot((snap)=>{
         const data=snap.data();
         const roster=Array.isArray(data?.roster) ? data.roster : [];
         cb(roster);
-      }, (err)=>console.warn(err));
+      }, (err)=>{ console.warn(err); throw err; });
       return ()=>{ if(unsubRoster) unsubRoster(); unsubRoster=null; };
     },
     saveRoster: async(roster)=>{
-      await ensureAuthSignedIn();
+      requireSignedIn();
       await pathBase().doc(rosterDocId).set({ roster, updatedAt: window.firebase.firestore.FieldValue.serverTimestamp() }, {merge:true});
       return true;
     },
     subscribeDaily:(dateK, cb)=>{
+      requireSignedIn();
       if(unsubDaily) unsubDaily();
       const docId=`daily_${dateK}`;
       unsubDaily = pathBase().doc(docId).onSnapshot((snap)=>{
@@ -849,11 +988,11 @@ function createCloudBackend(firebaseConfig, schoolId){
           updatedBy: data.updatedBy || ""
         };
         cb(daily);
-      }, (err)=>console.warn(err));
+      }, (err)=>{ console.warn(err); throw err; });
       return ()=>{ if(unsubDaily) unsubDaily(); unsubDaily=null; };
     },
     updateStudent: async(dateK, studentId, patch)=>{
-      await ensureAuthSignedIn();
+      requireSignedIn();
       const docId=`daily_${dateK}`;
       const ref=pathBase().doc(docId);
 
@@ -861,33 +1000,68 @@ function createCloudBackend(firebaseConfig, schoolId){
       const prev = { ...prevRaw, status: normalizeStatus(prevRaw.status) };
       const next = { ...prev, ...patch, status: normalizeStatus(patch.status ?? prev.status), ts: nowTs(), by:(DB.config.displayName || "—") };
 
-     const payload = {
-  states: { [String(studentId)]: next },
-  updatedBy: (DB.config.displayName || "—"),
-  updatedAt: window.firebase.firestore.FieldValue.serverTimestamp()
-};
-await ref.set(payload, { merge: true });
+      const payload = {
+        states: { [String(studentId)]: next },
+        updatedBy: (DB.config.displayName || "—"),
+        updatedAt: window.firebase.firestore.FieldValue.serverTimestamp()
+      };
+      await ref.set(payload, { merge: true });
 
       return {prev,next};
     },
     updateClassDone: async(dateK, className, done)=>{
-      await ensureAuthSignedIn();
+      requireSignedIn();
       const docId=`daily_${dateK}`;
       const ref=pathBase().doc(docId);
       const payload = {
-  classDone: { [String(className)]: !!done },
-  updatedBy: (DB.config.displayName || "—"),
-  updatedAt: window.firebase.firestore.FieldValue.serverTimestamp()
-};
-await ref.set(payload, { merge: true });
-
+        classDone: { [String(className)]: !!done },
+        updatedBy: (DB.config.displayName || "—"),
+        updatedAt: window.firebase.firestore.FieldValue.serverTimestamp()
+      };
+      await ref.set(payload, { merge: true });
       return true;
     }
   };
 }
 
 /* -------------------------
-   UI + Actions
+   UI
+------------------------- */
+function setAuthPill(){
+  const auth = window.firebase?.auth?.();
+  const user = auth?.currentUser;
+  if(user){
+    $("#auth-pill").className="px-3 py-2 rounded-2xl border text-xs font-black bg-emerald-50 border-emerald-100 text-emerald-700";
+    $("#auth-pill").textContent=`👤 ${user.email || "ログイン中"}`;
+  }else{
+    $("#auth-pill").className="px-3 py-2 rounded-2xl border text-xs font-black bg-white border-slate-200 text-slate-500";
+    $("#auth-pill").textContent="👤 未ログイン";
+  }
+}
+function setCloudPill(){
+  if(State.cloudReady){
+    $("#cloud-pill").className="px-3 py-2 rounded-2xl border text-xs font-black bg-blue-50 border-blue-100 text-blue-700";
+    $("#cloud-pill").textContent="☁ 接続中";
+  }else{
+    $("#cloud-pill").className="px-3 py-2 rounded-2xl border text-xs font-black bg-white border-slate-200 text-slate-500";
+    $("#cloud-pill").textContent="☁ 未接続";
+  }
+}
+function showLogin(show){
+  $("#login-overlay").classList.toggle("hidden", !show);
+  $("#login-error").classList.add("hidden");
+  $("#login-error").textContent="";
+}
+function showCloudError(msg){
+  $("#cloud-error-msg").textContent = msg || "不明なエラー";
+  $("#cloud-error-overlay").classList.remove("hidden");
+}
+function hideCloudError(){
+  $("#cloud-error-overlay").classList.add("hidden");
+}
+
+/* -------------------------
+   UI + Actions（元コードほぼ維持）
 ------------------------- */
 const UI = {
   switchTab(tab){
@@ -979,6 +1153,7 @@ const Actions = {
   },
 
   async setStatus(studentId, statusKey, note){
+    if(!State.backend){ showToast("未ログイン / 未接続です"); return; }
     const s = State.roster.find(x=>String(x.id)===String(studentId));
     if(!s) return;
 
@@ -1001,6 +1176,7 @@ const Actions = {
   },
 
   async setClassDone(done){
+    if(!State.backend){ showToast("未ログイン / 未接続です"); return; }
     const cls = $("#class-filter").value;
     if(!cls) return;
     await State.backend.updateClassDone(State.date, cls, !!done);
@@ -1016,6 +1192,7 @@ const Actions = {
   },
 
   async markAll(statusKey){
+    if(!State.backend){ showToast("未ログイン / 未接続です"); return; }
     const cls = $("#class-filter").value;
     const list = State.roster.filter(s=>s.class===cls).sort((a,b)=>a.num-b.num);
     if(!list.length) return;
@@ -1034,9 +1211,8 @@ const Actions = {
   }
 };
 
-
 /* -------------------------
-   Rendering
+   Rendering（元コード維持）
 ------------------------- */
 function renderOverview(){
   const { classes, classDone, rideCount, busCounts, doneCount } = derived();
@@ -1064,15 +1240,11 @@ function renderOverview(){
     `;
   }).join("");
 
-  if(DB.config.mode==="cloud" && State.cloudReady){
-    $("#cloud-pill").className="px-3 py-2 rounded-2xl border text-xs font-black bg-blue-50 border-blue-100 text-blue-700";
-    $("#cloud-pill").textContent="☁ クラウド同期";
-  }else{
-    $("#cloud-pill").className="px-3 py-2 rounded-2xl border text-xs font-black bg-white border-slate-200 text-slate-500";
-    $("#cloud-pill").textContent="☁ ローカル";
-  }
+  setCloudPill();
+  setAuthPill();
 }
 
+/* ここから先（renderCheck〜）はユーザー貼付のまま */
 function renderCheck(){
   const { roster, classes, classDone } = derived();
   const filter=$("#class-filter");
@@ -1119,11 +1291,7 @@ function renderCheck(){
 
     if(st.status==="ride"){
       const t=rideThemeForBus(s.bus);
-      cardClass=t.card;
-      nameClass=t.name;
-      subClass=t.sub;
-      topBtnClass=t.menu;
-      noteChip=t.note;
+      cardClass=t.card; nameClass=t.name; subClass=t.sub; topBtnClass=t.menu; noteChip=t.note;
     }else if(st.status==="pickup"){
       cardClass = "bg-emerald-500 border-emerald-600 shadow-lg shadow-emerald-100";
       nameClass = "text-white"; subClass="text-emerald-50";
@@ -1156,7 +1324,7 @@ function renderCheck(){
       </div>
 
       <div class="min-w-0">
-        <div class="font-black text-[13px] leading-tight truncate ${nameClass}">${s.name}</div>
+        <div class="font-black text-[18px] leading-tight truncate ${nameClass}">${s.name}</div>
       </div>
 
       <div class="flex items-center gap-2 min-w-0">
@@ -1257,7 +1425,6 @@ function renderMonitor(){
           const statusMini = showStatusMini ? `<span class="px-1.5 py-0.5 rounded-lg text-[10px] font-black ${info.chip}">${info.short}</span>` : "";
 
           return `
-            <!-- ★氏名欄を最大限横に：右列をスリム化（34px） -->
             <div class="grid grid-cols-[28px_1fr_34px] items-center gap-1 px-1.5 py-1 rounded-2xl border ${rowBg}">
               <div class="w-[28px] h-6 rounded-xl bg-slate-900 text-white grid place-items-center font-black text-[11px] leading-none">${s.num}</div>
 
@@ -1302,7 +1469,6 @@ function renderPrint(){
     </div>
   `;
 
-  // バス別：A4 1枚に3バス（バス停列削除 / 2列レイアウトで高さ圧縮）
   if(mode==="bus"){
     const page=document.createElement("div");
     page.className="print-page print-card bus-sheet rounded-3xl border border-slate-200 shadow-sm p-3";
@@ -1324,23 +1490,28 @@ function renderPrint(){
       const right = rows.slice(half);
       const maxN = Math.max(left.length, right.length);
 
+      /* ★修正：バス停を氏名の右に追加（2列維持） */
       card.innerHTML = `
         <div class="print-bus-title">■ ${busName}（${rows.length}名）</div>
         <table>
           <colgroup>
-            <col style="width:18%;">  <!-- クラス -->
-            <col style="width:8%;">   <!-- 番号 -->
-            <col style="width:21%;">  <!-- 氏名 -->
-            <col style="width:3%;">   <!-- □ -->
-            <col style="width:18%;">  <!-- クラス -->
-            <col style="width:8%;">   <!-- 番号 -->
-            <col style="width:21%;">  <!-- 氏名 -->
-            <col style="width:3%;">   <!-- □ -->
+            <!-- 左（合計50%） -->
+            <col style="width:10%;">
+            <col style="width:5%;">
+            <col style="width:14%;">
+            <col style="width:19%;">
+            <col style="width:2%;">
+            <!-- 右（合計50%） -->
+            <col style="width:10%;">
+            <col style="width:5%;">
+            <col style="width:14%;">
+            <col style="width:19%;">
+            <col style="width:2%;">
           </colgroup>
           <thead>
             <tr>
-              <th>クラス</th><th>番号</th><th>氏名</th><th>□</th>
-              <th>クラス</th><th>番号</th><th>氏名</th><th>□</th>
+              <th>クラス</th><th>番</th><th>氏名</th><th>バス停</th><th>□</th>
+              <th>クラス</th><th>番</th><th>氏名</th><th>バス停</th><th>□</th>
             </tr>
           </thead>
           <tbody>
@@ -1353,32 +1524,40 @@ function renderPrint(){
                   const aCls = a ? formatClassLabel(a.class) : "";
                   const bCls = b ? formatClassLabel(b.class) : "";
 
-                  const aClsPt = a ? fitFontPt(aCls, 7.4, 6, 6.0) : null;
-                  const bClsPt = b ? fitFontPt(bCls, 7.4, 6, 6.0) : null;
+                  const basePt = 6.2; /* ★少し詰める */
+                  const aClsPt = a ? fitFontPt(aCls, basePt, 6, 5.6) : null;
+                  const bClsPt = b ? fitFontPt(bCls, basePt, 6, 5.6) : null;
 
-                  const aNamePt = a ? fitFontPt(a.name, 7.4, 7, 5.8) : null;
-                  const bNamePt = b ? fitFontPt(b.name, 7.4, 7, 5.8) : null;
+                  const aNamePt = a ? fitFontPt(a.name, basePt, 7, 5.4) : null;
+                  const bNamePt = b ? fitFontPt(b.name, basePt, 7, 5.4) : null;
+
+                  const aStopPt = a ? fitFontPt(a.stop, basePt, 10, 5.4) : null;
+                  const bStopPt = b ? fitFontPt(b.stop, basePt, 10, 5.4) : null;
 
                   const aClsStyle = aClsPt ? `font-size:${aClsPt}pt !important;` : "";
                   const bClsStyle = bClsPt ? `font-size:${bClsPt}pt !important;` : "";
                   const aNameStyle = aNamePt ? `font-size:${aNamePt}pt !important;` : "";
                   const bNameStyle = bNamePt ? `font-size:${bNamePt}pt !important;` : "";
+                  const aStopStyle = aStopPt ? `font-size:${aStopPt}pt !important;` : "";
+                  const bStopStyle = bStopPt ? `font-size:${bStopPt}pt !important;` : "";
 
                   return `
                     <tr>
                       <td class="td-class" style="${aClsStyle}">${a ? esc(aCls) : ""}</td>
                       <td style="text-align:center; font-weight:800; white-space:nowrap;">${a ? a.num : ""}</td>
                       <td class="td-name" style="${aNameStyle}">${a ? esc(a.name) : ""}</td>
+                      <td class="td-stop-bus" style="${aStopStyle}">${a ? esc(a.stop) : ""}</td>
                       <td style="text-align:center;">${a ? "□" : ""}</td>
 
                       <td class="td-class" style="${bClsStyle}">${b ? esc(bCls) : ""}</td>
                       <td style="text-align:center; font-weight:800; white-space:nowrap;">${b ? b.num : ""}</td>
                       <td class="td-name" style="${bNameStyle}">${b ? esc(b.name) : ""}</td>
+                      <td class="td-stop-bus" style="${bStopStyle}">${b ? esc(b.stop) : ""}</td>
                       <td style="text-align:center;">${b ? "□" : ""}</td>
                     </tr>
                   `;
                 }).join("")
-              : `<tr><td colspan="8" style="text-align:center; padding:3mm; font-weight:900; color:#64748b;">乗車予定なし</td></tr>`
+              : `<tr><td colspan="10" style="text-align:center; padding:3mm; font-weight:900; color:#64748b;">乗車予定なし</td></tr>`
             }
           </tbody>
         </table>
@@ -1392,7 +1571,6 @@ function renderPrint(){
     return;
   }
 
-  // 学級別：備考なし／幅最適化（縦向き）
   let first = true;
   classes.forEach(cls=>{
     const kids = roster.filter(s=>s.class===cls).sort((a,b)=>a.num-b.num);
@@ -1409,21 +1587,16 @@ function renderPrint(){
       <div class="print-class-title">■ ${formatClassLabel(cls)}（${kids.length}名）</div>
       <table class="${compactClass}">
         <colgroup>
-          <col style="width:10%;">  <!-- 番号 -->
-          <col style="width:30%;">  <!-- 氏名 -->
-          <col style="width:14%;">  <!-- 状態 -->
-          <col style="width:12%;">  <!-- バス -->
-          <col style="width:26%;">  <!-- バス停 -->
-          <col style="width:8%;">   <!-- 確認 -->
+          <col style="width:10%;">
+          <col style="width:30%;">
+          <col style="width:14%;">
+          <col style="width:12%;">
+          <col style="width:26%;">
+          <col style="width:8%;">
         </colgroup>
         <thead>
           <tr>
-            <th>番号</th>
-            <th>氏名</th>
-            <th>状態</th>
-            <th>バス</th>
-            <th>バス停</th>
-            <th>□</th>
+            <th>番号</th><th>氏名</th><th>状態</th><th>バス</th><th>バス停</th><th>□</th>
           </tr>
         </thead>
         <tbody>
@@ -1452,13 +1625,11 @@ function renderPrint(){
   });
 }
 
-/* ---- Monitor fit ---- */
 function layoutMonitor(){
   const root=$("#monitor-fit-root");
   if(!root) return;
   const header=document.querySelector("header");
   const headerH=header ? header.offsetHeight : 0;
-
   const h = Math.max(360, window.innerHeight - headerH - 110);
   root.style.height = h + "px";
 }
@@ -1474,14 +1645,13 @@ function fitMonitor(){
   const w = content.scrollWidth;
   const h = content.scrollHeight;
   if(w<=0 || h<=0) return;
-
   const scale = Math.min(maxW / w, maxH / h);
   const final = Math.min(scale, 1.9);
   content.style.transform = `scale(${final})`;
 }
 
 /* -------------------------
-   CSV（文字化け対策）
+   CSV（元コード）
 ------------------------- */
 function downloadBlob(content, filename, type="application/octet-stream"){
   const blob = new Blob([content], {type});
@@ -1509,7 +1679,6 @@ function exportCSV(){
   const csv = "\ufeff" + lines.join("\n");
   downloadBlob(csv, `bus_roster_${dateKey()}.csv`, "text/csv;charset=utf-8");
 }
-
 function parseCSV(text){
   const rows=[]; let i=0, field="", row=[], inQuotes=false;
   while(i<text.length){
@@ -1529,18 +1698,14 @@ function parseCSV(text){
   if(field.length || row.length){ row.push(field); rows.push(row); }
   return rows;
 }
-
 async function readCsvTextSmart(file){
   const buf = await file.arrayBuffer();
   const u8 = new Uint8Array(buf);
   const hasUtf8Bom = u8.length>=3 && u8[0]===0xEF && u8[1]===0xBB && u8[2]===0xBF;
 
   const tryDecode = (enc)=>{
-    try{
-      return new TextDecoder(enc, {fatal:false}).decode(buf);
-    }catch(e){
-      return null;
-    }
+    try{ return new TextDecoder(enc, {fatal:false}).decode(buf); }
+    catch(e){ return null; }
   };
 
   let text = tryDecode("utf-8") ?? "";
@@ -1554,7 +1719,6 @@ async function readCsvTextSmart(file){
   text = text.replace(/^\uFEFF/, "");
   return text;
 }
-
 async function importCSV(file){
   const text = await readCsvTextSmart(file);
   const rows=parseCSV(text);
@@ -1592,7 +1756,7 @@ async function importCSV(file){
 }
 
 /* -------------------------
-   Settings
+   Settings（UI変更に合わせて更新）
 ------------------------- */
 const Settings = {
   startEdit(id){
@@ -1634,18 +1798,23 @@ const Settings = {
 
 function renderSettings(){
   $("#cfg-display-name").value = DB.config.displayName || "";
-  $("#cfg-school-id").value = DB.config.schoolId || "otaki-es";
-  $("#cfg-firebase-json").value = DB.config.firebaseJSON || "";
-
-  const isCloud = DB.config.mode==="cloud";
-  $("#cfg-mode-local").className = isCloud ? "px-4 py-3 text-sm font-black bg-white text-slate-700" : "px-4 py-3 text-sm font-black bg-slate-900 text-white";
-  $("#cfg-mode-cloud").className = isCloud ? "px-4 py-3 text-sm font-black bg-slate-900 text-white" : "px-4 py-3 text-sm font-black bg-white text-slate-700";
-  $("#cfg-mode-hint").textContent = isCloud ? "クラウド同期：職員室モニタと担任端末で同じデータを共有（差分同期/ポーリングなし）" : "ローカル：この端末内だけで完結";
-
-  $("#cfg-mode-local").onclick = ()=>{ DB.config.mode="local"; saveDB(); showToast("ローカルに切替"); applyBackend(); renderSettings(); };
-  $("#cfg-mode-cloud").onclick = ()=>{ DB.config.mode="cloud"; saveDB(); showToast("クラウド同期に切替（設定が必要）"); applyBackend(); renderSettings(); };
-
   $("#roster-count-label").textContent = `全 ${State.roster.length} 名`;
+
+  const auth = window.firebase?.auth?.();
+  const user = auth?.currentUser;
+
+  $("#settings-auth").textContent = user ? `ログイン中：${user.email || "user"}` : "未ログイン";
+  $("#settings-auth").className = user
+    ? "px-3 py-2 rounded-2xl border text-xs font-black bg-emerald-50 border-emerald-100 text-emerald-700"
+    : "px-3 py-2 rounded-2xl border text-xs font-black bg-white border-slate-200 text-slate-500";
+
+  $("#settings-cloud").textContent = State.cloudReady ? "クラウド：接続OK" : "クラウド：未接続";
+  $("#settings-cloud").className = State.cloudReady
+    ? "px-3 py-2 rounded-2xl border text-xs font-black bg-blue-50 border-blue-100 text-blue-700"
+    : "px-3 py-2 rounded-2xl border text-xs font-black bg-white border-slate-200 text-slate-500";
+
+  $("#settings-schoolid").textContent = PRESET_SCHOOL_ID;
+  $("#settings-projectid").textContent = String(PRESET_FIREBASE_CONFIG.projectId || "--");
 
   $("#settings-list-body").innerHTML = State.roster.slice()
     .sort((a,b)=>a.class.localeCompare(b.class, undefined, {numeric:true}) || (a.num-b.num))
@@ -1662,20 +1831,10 @@ function renderSettings(){
         </td>
       </tr>
     `).join("");
-
-  if(DB.config.mode==="cloud"){
-    $("#cfg-cloud-status").textContent = State.cloudReady ? "接続OK" : "未接続/要設定";
-    $("#cfg-cloud-status").className = State.cloudReady
-      ? "px-3 py-2 rounded-2xl border text-xs font-black bg-emerald-50 border-emerald-100 text-emerald-700"
-      : "px-3 py-2 rounded-2xl border text-xs font-black bg-white border-slate-200 text-slate-500";
-  }else{
-    $("#cfg-cloud-status").textContent="ローカル運用";
-    $("#cfg-cloud-status").className="px-3 py-2 rounded-2xl border text-xs font-black bg-white border-slate-200 text-slate-500";
-  }
 }
 
 /* -------------------------
-   Subscriptions / Backend apply
+   Subscriptions / Cloud apply
 ------------------------- */
 let unsubRoster=null, unsubDaily=null;
 
@@ -1684,40 +1843,30 @@ async function applyBackend(){
   if(unsubDaily){ unsubDaily(); unsubDaily=null; }
   State.cloudReady=false;
 
-  if(DB.config.mode==="cloud"){
-    let cfg=null;
-    try{
-      cfg = JSON.parse(DB.config.firebaseJSON || "{}");
-      if(!cfg || !cfg.projectId) throw new Error("projectId が見つかりません");
-    }catch(e){
-      console.warn(e);
-      State.backend=createLocalBackend();
-      DB.config.mode="local"; saveDB();
-      showToast("クラウド設定未完了：ローカルで動作します");
-      setupSubscriptions();
-      renderAll();
-      return;
-    }
-
-    const backend = createCloudBackend(cfg, DB.config.schoolId || "default");
-    try{
-      await backend.init();
-      State.backend=backend;
-      State.cloudReady=true;
-    }catch(err){
-      console.warn(err);
-      State.backend=createLocalBackend();
-      DB.config.mode="local"; saveDB();
-      State.cloudReady=false;
-      showToast("クラウド接続失敗：ローカルで動作します（Auth/設定を確認）");
-    }
-  }else{
-    State.backend=createLocalBackend();
+  const auth = window.firebase.auth();
+  if(!auth.currentUser){
+    State.backend=null;
     State.cloudReady=false;
+    setCloudPill();
+    return;
   }
 
-  setupSubscriptions();
-  renderAll();
+  try{
+    const backend = createCloudBackend(PRESET_FIREBASE_CONFIG, PRESET_SCHOOL_ID);
+    await backend.init();
+    State.backend=backend;
+
+    setupSubscriptions(); // ここで onSnapshot 開始
+    State.cloudReady=true;
+    setCloudPill();
+    renderAll();
+  }catch(e){
+    console.warn(e);
+    State.backend=null;
+    State.cloudReady=false;
+    setCloudPill();
+    showCloudError(String(e?.message || e));
+  }
 }
 
 function setupSubscriptions(){
@@ -1742,6 +1891,7 @@ function setupSubscriptions(){
   });
 }
 function resubscribeDaily(){
+  if(!State.backend) return;
   if(unsubDaily){ unsubDaily(); unsubDaily=null; }
   unsubDaily = State.backend.subscribeDaily(State.date, (daily)=>{
     if(daily && daily.states){
@@ -1808,33 +1958,24 @@ function bind(){
     if(e.target && e.target.classList.contains("modal-backdrop")) UI.closeModal();
   });
 
-  $("#btn-save-config").onclick=async()=>{
+  $("#btn-save-config").onclick=()=>{
     DB.config.displayName=$("#cfg-display-name").value.trim();
-    DB.config.schoolId=$("#cfg-school-id").value.trim() || "default";
-    DB.config.firebaseJSON=$("#cfg-firebase-json").value.trim();
     saveDB();
-    showToast("設定を保存しました");
-    await applyBackend();
-    UI.switchTab("settings");
+    showToast("表示名を保存しました");
+    renderSettings();
   };
 
-  $("#btn-test-cloud").onclick=async()=>{
+  $("#btn-logout").onclick=async()=>{
     try{
-      const json=$("#cfg-firebase-json").value.trim();
-      const cfg=JSON.parse(json||"{}");
-      if(!cfg.projectId) throw new Error("projectId がありません");
-      const b=createCloudBackend(cfg, $("#cfg-school-id").value.trim() || "default");
-      await b.init();
-      $("#cfg-cloud-status").textContent="接続OK（保存して有効化してください）";
-      $("#cfg-cloud-status").className="px-3 py-2 rounded-2xl border text-xs font-black bg-emerald-50 border-emerald-100 text-emerald-700";
-      showToast("接続テストOK");
+      await window.firebase.auth().signOut();
+      showToast("ログアウトしました");
     }catch(e){
-      $("#cfg-cloud-status").textContent="接続NG（JSON/ネットワーク/Auth確認）";
-      $("#cfg-cloud-status").className="px-3 py-2 rounded-2xl border text-xs font-black bg-rose-50 border-rose-100 text-rose-700";
-      showToast("接続テスト失敗");
       console.warn(e);
+      showToast("ログアウト失敗");
     }
   };
+
+  $("#btn-cloud-error-close").onclick=()=>hideCloudError();
 
   $("#btn-export-json").onclick=exportJSON;
   $("#btn-export-csv").onclick=exportCSV;
@@ -1847,15 +1988,16 @@ function bind(){
   });
 
   $("#btn-factory-reset").onclick=()=>{
-    if(!confirm("全データ（名簿・日々の状態・設定）を初期化しますか？")) return;
+    if(!confirm("全データ（名簿・日々の状態・表示名）を初期化しますか？")) return;
     localStorage.removeItem(APP.storageKey);
     location.reload();
   };
 
   $("#student-form").addEventListener("submit", async(e)=>{
     e.preventDefault();
-    const editId=$("#edit-id").value;
+    if(!State.backend){ showToast("未ログイン / 未接続です"); return; }
 
+    const editId=$("#edit-id").value;
     const item={
       id: editId ? Number(editId) : (Date.now()+Math.floor(Math.random()*10000)),
       class: $("#input-class").value.trim(),
@@ -1889,9 +2031,35 @@ function bind(){
       fitMonitor();
     }
   });
+
+  // login button
+  $("#btn-login").onclick = async ()=>{
+    const email = ($("#login-email").value || "").trim();
+    const pass  = ($("#login-password").value || "").trim();
+
+    $("#login-error").classList.add("hidden");
+    $("#login-error").textContent="";
+
+    try{
+      if(!hasValidFirebaseConfig(PRESET_FIREBASE_CONFIG)){
+        throw new Error("PRESET_FIREBASE_CONFIG が未設定です（コード内のYOUR_...を差し替え）");
+      }
+      await window.firebase.auth().setPersistence(window.firebase.auth.Auth.Persistence.LOCAL);
+      await window.firebase.auth().signInWithEmailAndPassword(email, pass);
+      showToast("ログインしました");
+    }catch(e){
+      console.warn(e);
+      $("#login-error").textContent = String(e?.message || e);
+      $("#login-error").classList.remove("hidden");
+    }
+  };
+
+  // 初期値（共通ID）
+  $("#login-email").value = "bus@otakisho.local";
+  $("#login-password").value = "otakisho";
 }
 
-/* 5秒ごとUIハートビート（差分同期はonSnapshotなのでread/writeは増やさない） */
+/* 5秒ごとUIハートビート */
 function startHeartbeat(){
   setInterval(()=>{
     if(State.tab==="monitor"){
@@ -1901,14 +2069,51 @@ function startHeartbeat(){
   }, 5000);
 }
 
-/* 起動（末尾に置く） */
-window.addEventListener("DOMContentLoaded", async ()=>{
-  bind();                 // 先にイベントを付ける（タブが反応しやすくなる）
-  await applyBackend();   // ここで local/cloud を判定して購読開始＋renderAllまで実施される
-  startHeartbeat();
-  UI.switchTab("check");  // 初期タブを確実に
-});
+async function initFirebaseOrDie(){
+  if(!window.firebase) throw new Error("Firebase SDKが読み込めません");
+  if(!hasValidFirebaseConfig(PRESET_FIREBASE_CONFIG)){
+    throw new Error("PRESET_FIREBASE_CONFIG が未設定です（YOUR_...を差し替え）");
+  }
+  // initializeApp は backend 側でも行うが、Auth listener のため先に安全に初期化
+  if(!window.firebase.apps?.length){
+    window.firebase.initializeApp(PRESET_FIREBASE_CONFIG);
+  }
+}
 
+/* 起動 */
+window.addEventListener("DOMContentLoaded", async ()=>{
+  bind();
+  try{
+    await initFirebaseOrDie();
+  }catch(e){
+    console.warn(e);
+    showCloudError(String(e?.message || e));
+    showLogin(false);
+    return;
+  }
+
+  // Auth state listener
+  window.firebase.auth().onAuthStateChanged(async (user)=>{
+    setAuthPill();
+    if(user){
+      showLogin(false);
+      hideCloudError();
+      await applyBackend();
+      UI.switchTab("check");
+    }else{
+      // 未ログイン：購読解除 + ログイン画面表示
+      if(unsubRoster){ unsubRoster(); unsubRoster=null; }
+      if(unsubDaily){ unsubDaily(); unsubDaily=null; }
+      State.backend=null;
+      State.cloudReady=false;
+      setCloudPill();
+      showLogin(true);
+    }
+    renderAll();
+  });
+
+  startHeartbeat();
+});
 </script>
 </body>
 </html>
