@@ -582,7 +582,7 @@
               <select id="input-bus" class="mt-1 w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 font-bold outline-none focus:ring-2 focus:ring-blue-500">
                 <option value="上瀑バス">上瀑バス</option>
                 <option value="総元バス">総元バス</option>
-                <option value="市部・市部・市部・田代バス">市部・市部・市部・田代バス</option>
+                <option value="市部・田代バス">市部・田代バス</option>
               </select>
             </div>
             <div class="lg:col-span-2">
@@ -688,7 +688,7 @@ const PRESET_SCHOOL_ID = "otaki-es";
 const APP = {
   version: "v12.3-schoolcal-cloud",
   storageKey: "busCheckerV123",
-  busTypes: ["上瀑バス","総元バス","市部・市部・市部・田代バス"],
+  busTypes: ["上瀑バス","総元バス","市部・田代バス"],
   statuses: [
     { key:"none",   label:"未チェック", chip:"chip-none",   short:"未" },
     { key:"ride",   label:"乗車",       chip:"chip-ride",   short:"乗" },
@@ -804,7 +804,7 @@ function defaultDB(){
     roster:[
       { id: 1, class:"1-1", num:1, name:"佐藤 太郎", bus:"上瀑バス", stop:"上瀑駅前" },
       { id: 2, class:"1-1", num:2, name:"鈴木 花子", bus:"総元バス", stop:"総元小学校" },
-      { id: 3, class:"2-1", num:1, name:"田中 一郎", bus:"市部・市部・市部・田代バス", stop:"市部・市部・市部・田代中央" },
+      { id: 3, class:"2-1", num:1, name:"田中 一郎", bus:"市部・田代バス", stop:"市部・市部・市部・田代中央" },
     ],
     daily:{}
   };
